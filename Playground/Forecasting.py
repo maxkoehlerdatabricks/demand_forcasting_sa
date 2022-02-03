@@ -253,10 +253,6 @@ def evaluate_model(hyperopt_params):
   if 'q' in params: params['q']=int(params['q']) # hyperopt supplies values as float but must be int
     
   order_parameters = (params['p'],params['d'],params['q'])
-  train = series_df.iloc[is_hsitory]
-  score = series_df.iloc[~np.array(is_hsitory)]
-  train_exo = exo_df.iloc[is_hsitory]  
-  score_exo = exo_df.iloc[~np.array(is_hsitory)]
 
   model1 = SARIMAX(train, exog= train_exo, order=order_parameters, seasonal_order=(0, 0, 0, 0))
   fit1 = model1.fit(disp=False)
@@ -264,10 +260,6 @@ def evaluate_model(hyperopt_params):
 
   return {'status': hyperopt.STATUS_OK, 'loss': np.power(score.to_numpy() - fcast1.to_numpy(), 2).mean()}
   
-
-# COMMAND ----------
-
-##evaluate_model(p=0,d=1,q=1) #make two stars in front of parameters of function to test
 
 # COMMAND ----------
 
@@ -289,6 +281,19 @@ with mlflow.start_run(run_name='mkh_test_sa'):
     trials=SparkTrials(parallelism=1),
     verbose=True
     )
+
+# COMMAND ----------
+
+#Choose best model
+model1 = SARIMAX(train, exog= train_exo, order=(argmin.get('d'), argmin.get('p'), argmin.get('q')), seasonal_order=(0, 0, 0, 0))
+fit1 = model1.fit(disp=False)
+fcast1 = fit1.predict(start = min(score_exo.index), end = max(score_exo.index), exog = score_exo )
+
+#And score
+fcst_df = pdf.iloc[~np.array(is_hsitory)].assign(Demand = fcast1.tolist())
+history_df =  pdf.iloc[is_hsitory]
+pdf_fcst =  history_df.append(fcst_df)
+pdf_fcst
 
 # COMMAND ----------
 
@@ -364,15 +369,21 @@ space = hp.choice("type", [
 
 # COMMAND ----------
 
+#I did not succeed in not tracking experiments, mlflow.autolog(disable=True) didi not work, neither did with commenting mlflow.start_run(run_name='mkh_test_sa_2'):
+
 with mlflow.start_run(run_name='mkh_test_sa_2'):
+  
   argmin = fmin(
     fn=evaluate_model,
     space=space,
     algo=tpe.suggest,  # algorithm controlling how hyperopt navigates the search space
-    max_evals=30,
+    max_evals=3,
     trials=SparkTrials(parallelism=1), # THIS VALUE IS ALIGNED WITH THE NUMBER OF WORKERS IN MY GPU-ENABLED CLUSTER (guidance differs for CPU-based clusters)
     verbose=True
-    )
+  )
+    
+mlflow.end_run()
+
 
 # COMMAND ----------
 
@@ -380,21 +391,11 @@ print(hyperopt.space_eval(space, argmin))
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC To do:
-# MAGIC - Only take SARIMAX models and take car about scoring
+# retrain and log model separately
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+argmin
 
 # COMMAND ----------
 
