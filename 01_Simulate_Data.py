@@ -1,7 +1,7 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Hierarcichal Time Series Generator
-# MAGIC This notebook simulates hierarcichal time series data
+# MAGIC # Hierarchical Time Series Generator
+# MAGIC This notebook simulates hierarchical time series data
 
 # COMMAND ----------
 
@@ -30,7 +30,7 @@ from pyspark.sql.types import StructType,StructField, StringType, DateType
 n=10 # Number of SKU's per product
 ts_length_in_years = 3 # Length of a time series in years
 corona_breakpoint = datetime.date(year=2020,month=3,day=1) # date infortmation: At which date do Corona effects into play
-percentage_decrease_corona_from = 20 # date infortmation: define the decline after Corona comes into play
+percentage_decrease_corona_from = 20 # date information: define the decline after Corona comes into play
 percentage_decrease_corona_to = 7 # date infortmation: define the decline after Corona comes into play
 trend_factor_before_corona = 100 # date infortmation: trend before Corona
 
