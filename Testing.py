@@ -22,4 +22,11 @@
 
 # COMMAND ----------
 
+# MAGIC %sql
+# MAGIC %SELECT * FROM demand_df_delta TABLESAMPLE (1 ROWS);
+# MAGIC DECLARE @SKU AS NVARCHAR(50);
+# MAGIC SELECT * FROM demand_df_delta ORDER BY RANDOM() LIMIT 1
+
+# COMMAND ----------
+
 
