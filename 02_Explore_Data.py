@@ -31,10 +31,13 @@ from hyperopt import hp, fmin, tpe, SparkTrials, STATUS_OK, space_eval
 from hyperopt.pyll.base import scope
 mlflow.autolog(disable=True)
 
+import pyspark.sql.functions as F
 from pyspark.sql.functions import col
 
+# COMMAND ----------
+
 forecast_horizon = 40
-corona_breakpoint = datetime.date(year=2020,month=3,day=1)
+corona_breakpoint = datetime.date(year=2020, month=3, day=1)
 
 # COMMAND ----------
 
@@ -53,8 +56,21 @@ display(demand_df)
 
 # COMMAND ----------
 
+display(demand_df.select("Product").dropDuplicates())
+
+# COMMAND ----------
+
+display(demand_df.groupBy("Product").agg(F.countDistinct("SKU").alias("distinctSKUs")).dropDuplicates())
+
+# COMMAND ----------
+
 # MAGIC %md
-# MAGIC The data consists of stacked time series. Each product has a number of SKU's and for each SKU there is demand for a date. The demand time series for each product and SKU are appended to a one data frame. Each product group has a similar structure. There is a christmas effect with a significant drop in demand before christmas followed by an increase in demand after christmas. At approximately the beginning of March in the year 2020, the demand drops to approximately 70 %. Before that, we observe a positive trend with decreasing increments. After the Corona drop, there is a recovery phase with a clear positive trend. The fluctuation of the time series, as well as their overall mean differ across products. 
+# MAGIC The data consists of stacked time series. Each product has a number of SKUs and for each SKU there is demand for a given date. The demand time series for each product and SKU are consolidated to a one DataFrame. Each product group has a similar structure:
+# MAGIC - There is a christmas effect with a significant drop in demand before christmas followed by an increase in demand after christmas
+# MAGIC - At approximately the beginning of March in the year 2020, the demand drops to approximately 70%. 
+# MAGIC - Before that, we observe a positive trend with decreasing increments. 
+# MAGIC - After the Corona drop, there is a recovery phase with a clear positive trend. 
+# MAGIC - The fluctuation of the time series, as well as their overall mean differ across products. 
 
 # COMMAND ----------
 
@@ -102,7 +118,7 @@ display(pdf)
 
 # COMMAND ----------
 
-is_hsitory = [True] * (len(series_df) - forecast_horizon) + [False] * forecast_horizon
+is_history = [True] * (len(series_df) - forecast_horizon) + [False] * forecast_horizon
 
 # COMMAND ----------
 
@@ -111,13 +127,13 @@ is_hsitory = [True] * (len(series_df) - forecast_horizon) + [False] * forecast_h
 
 # COMMAND ----------
 
-train = series_df.iloc[is_hsitory]
-score = series_df.iloc[~np.array(is_hsitory)]
+train = series_df.iloc[is_history]
+score = series_df.iloc[~np.array(is_history)]
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC Furthermore, we derive some exogenous dummy variables indicating before and after the pandemic started and the christmas effect.
+# MAGIC Furthermore, we derive some exogenous dummy variables indicating before/after the pandemic started as well as the effect of Christmas.
 
 # COMMAND ----------
 
@@ -125,23 +141,22 @@ exo_df = pdf.assign(Week = pd.DatetimeIndex(pdf["Date"]).isocalendar().week.toli
 
 exo_df = exo_df \
   .assign(AfterCorona = np.where(pdf["Date"] >= np.datetime64(corona_breakpoint), 1, 0).tolist()  ) \
-  .assign(BeforeXMas = np.where( (exo_df["Week"] >= 51) & (exo_df["Week"] <= 52) , 1, 0).tolist()) \
-  .assign(AfterXMas = np.where( (exo_df["Week"] >= 1) & (exo_df["Week"] <= 4)  , 1, 0).tolist()) \
+  .assign(AfterXMas = np.where((exo_df["Week"] >= 1) & (exo_df["Week"] <= 4)  , 1, 0).tolist()) \
   .set_index('Date')
 
-exo_df = exo_df[["AfterCorona", "BeforeXMas", "AfterXMas" ]]
+exo_df = exo_df[["AfterCorona", "AfterXMas"]]
 exo_df = exo_df.asfreq(freq='W-MON')
 print(exo_df)
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC This dataset is also stratified into a training and validation data set.
+# MAGIC This dataset is then separated into a training and validation data set.
 
 # COMMAND ----------
 
-train_exo = exo_df.iloc[is_hsitory]  
-score_exo = exo_df.iloc[~np.array(is_hsitory)]
+train_exo = exo_df.iloc[is_history]  
+score_exo = exo_df.iloc[~np.array(is_history)]
 
 # COMMAND ----------
 
@@ -214,7 +229,7 @@ plt.title("Holt's Method")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC The Holt's Winters Seasonal method additionally adds a seasonal component. Note that the actuals have two seasonal components. The ongoing seasonal component can be fit in the forecasting horizon. However, this class of models is not able to fit the christmas effect. 
+# MAGIC The Holt's Winters Seasonal method additionally adds a seasonal component. Note that the actuals have two seasonal components. The ongoing seasonal component can be fit in the forecasting horizon. However, this class of models is not able to incorporate the Christmas effect. 
 
 # COMMAND ----------
 
@@ -289,7 +304,7 @@ plt.title("Holts Winters Seasonal Method")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC A SARIMAX model allows to incorporate explanatory variables. From a business point of view, this helps to incorporate business knowledge about demand driving events. This could not only be a christmas effect, but also promotion actions. We observe that the model does a poor job when not taking advantage of the business knowledge. However, if incorporating exogenous variables, the christmas effect and the after pandemic trend can fit well in the forecasting horizon.
+# MAGIC A SARIMAX model allows to incorporate explanatory variables. From a business point of view, this helps to incorporate business knowledge about demand driving events. This could not only be a christmas effect, but also promotion actions. We observe that the model does a poor job when not taking advantage of the business knowledge. However, if incorporating exogenous variables, the Christmas effect and the after-pandemic trend can fit well in the forecasting horizon.
 
 # COMMAND ----------
 
@@ -306,7 +321,7 @@ plt.plot(series_df, marker="o", color="black")
 plt.plot(fcast1[10:], color="blue")
 (line1,) = plt.plot(fcast1[10:], marker="o", color="blue")
 plt.plot(fcast2[10:], color="green")
-(line1,) = plt.plot(fcast2[10:], marker="o", color="green")
+(line2,) = plt.plot(fcast2[10:], marker="o", color="green")
 
 plt.axvline(x = min(score.index.values), color = 'red', label = 'axvline - full height')
 plt.legend([line0, line1, line2], ["Actuals", fcast1.name, fcast2.name])
@@ -336,14 +351,15 @@ def evaluate_model(hyperopt_params):
   # configure model parameters
   params = hyperopt_params
   
-  assert "p" in params and "d" in params and "q" in params, "Please prvide p,d and q"
+  assert "p" in params and "d" in params and "q" in params, "Please provide p, d, and q"
   
-  if 'p' in params: params['p']=int(params['p'])   # hyperopt supplies values as float but must be int
-  if 'd' in params: params['d']=int(params['d']) # hyperopt supplies values as float but must be int
-  if 'q' in params: params['q']=int(params['q']) # hyperopt supplies values as float but must be int
+  if 'p' in params: params['p']=int(params['p']) # hyperopt supplies values as float but model requires int
+  if 'd' in params: params['d']=int(params['d']) # hyperopt supplies values as float but model requires int
+  if 'q' in params: params['q']=int(params['q']) # hyperopt supplies values as float but model requires int
     
   order_parameters = (params['p'],params['d'],params['q'])
 
+  # for this example, assume no seasonality
   model1 = SARIMAX(train, exog= train_exo, order=order_parameters, seasonal_order=(0, 0, 0, 0))
   fit1 = model1.fit(disp=False)
   fcast1 = fit1.predict(start = min(score_exo.index), end = max(score_exo.index), exog = score_exo )

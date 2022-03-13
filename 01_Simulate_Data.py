@@ -1,7 +1,7 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Hierarcichal Time Series Generator
-# MAGIC This notebook simulates hierarcichal time series data
+# MAGIC # Hierarchical Time Series Generator
+# MAGIC This notebook simulates hierarchical time series data
 
 # COMMAND ----------
 
@@ -29,10 +29,10 @@ from pyspark.sql.types import StructType,StructField, StringType, DateType
 #################################################
 n=10 # Number of SKU's per product
 ts_length_in_years = 3 # Length of a time series in years
-corona_breakpoint = datetime.date(year=2020,month=3,day=1) # date infortmation: At which date do Corona effects into play
-percentage_decrease_corona_from = 20 # date infortmation: define the decline after Corona comes into play
-percentage_decrease_corona_to = 7 # date infortmation: define the decline after Corona comes into play
-trend_factor_before_corona = 100 # date infortmation: trend before Corona
+corona_breakpoint = datetime.date(year=2020, month=3, day=1) # date information: at which date do Corona effects come into play
+percentage_decrease_corona_from = 20 # date information: define the decline after Corona comes into play
+percentage_decrease_corona_to = 7 # date information: define the decline after Corona comes into play
+trend_factor_before_corona = 100 # date information: trend before Corona
 
 # COMMAND ----------
 
@@ -59,11 +59,11 @@ display(product_identifier_lookup)
 # COMMAND ----------
 
 #################################################
-# Create a product hierarchy by simulating SKU's for each product
+# Create a product hierarchy by simulating SKUs for each product
 #################################################
 
 # Define schema of output data-frame
-schema = StructType(  [StructField("SKU_Postfix", StringType(), True)] + product_identifier_lookup.schema.fields)
+product_hierarchy_schema = StructType([StructField("SKU_Postfix", StringType(), True)] + product_identifier_lookup.schema.fields)
 
 #Help-function to generate a random string
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
@@ -71,9 +71,7 @@ def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
 
   
 # Create a Pandas UDF to simulate unique SKU's, i.e. n random strings without repetition
-@pandas_udf(schema, PandasUDFType.GROUPED_MAP)
-
-def id_seuqence_generator(pdf):
+def id_sequence_generator(pdf):
     
   res = set()
   while True:
@@ -96,7 +94,7 @@ def id_seuqence_generator(pdf):
 product_hierarchy = ( \
   product_identifier_lookup \
   .groupby("SKU_Prefix", "Product") \
-  .apply(id_seuqence_generator) \
+  .applyInPandas(id_sequence_generator, product_hierarchy_schema) \
   .withColumn("SKU", concat_ws('_',"SKU_Prefix","SKU_Postfix")) \
   .select("Product","SKU")
       )
@@ -109,7 +107,7 @@ display(product_hierarchy)
 # COMMAND ----------
 
 #################################################
-# Create a Pandas Data Frame for common date information for each time series
+# Create a Pandas DataFrame with common dates for ALL time series
 #################################################
 # End Date: Make it a Monday
 end_date = datetime.datetime(2021, 7, 19)
@@ -160,9 +158,7 @@ choices_xmas = [
 
 date_range[ "Factor_XMas" ] = np.select(conditions_xmas, choices_xmas, default= 1.0)
 
-
 display(date_range)
-
 
 # COMMAND ----------
 
@@ -176,11 +172,14 @@ from pyspark.sql.functions import monotonically_increasing_id
 
 
 # Define schema for new columns
-schema = StructType([StructField("Variance_RN", FloatType(), True),
-          StructField("Offset_RN", FloatType(), True),
-          StructField("AR_Pars_RN", ArrayType(FloatType()), True),
-          StructField("MA_Pars_RN", ArrayType(FloatType()), True)])
-
+arma_schema = StructType(
+  [
+    StructField("Variance_RN", FloatType(), True),
+    StructField("Offset_RN", FloatType(), True),
+    StructField("AR_Pars_RN", ArrayType(FloatType()), True),
+    StructField("MA_Pars_RN", ArrayType(FloatType()), True)
+  ]
+)
 
 # Generate random numbers for the ARMA process
 n_ = product_identifier_lookup.count()
@@ -200,7 +199,7 @@ pdf_helper = (pd.DataFrame(variance_random_number, columns =['Variance_RN']).
              )
 
 # Append column-wise
-spark_df_helper = spark.createDataFrame(pdf_helper, schema = schema)
+spark_df_helper = spark.createDataFrame(pdf_helper, schema=arma_schema)
 spark_df_helper = spark_df_helper.withColumn("row_id", monotonically_increasing_id())
 product_identifier_lookup = product_identifier_lookup.withColumn("row_id", monotonically_increasing_id())
 product_identifier_lookup_extended = product_identifier_lookup.join(spark_df_helper, ("row_id")).drop("row_id")
@@ -241,7 +240,7 @@ def generate_arma(arparams, maparams, var, offset, number_of_points, plot):
 
 
 #Schema for output dataframe
-schema = StructType(  product_hierarchy.schema.fields + 
+sku_ts_schema = StructType(  product_hierarchy.schema.fields + 
                     [
                       StructField("Date", DateType(), True),
                       StructField("Demand", FloatType(), True),
@@ -260,7 +259,7 @@ schema = StructType(  product_hierarchy.schema.fields +
 
 
 # Generate a time series with random parameters
-@pandas_udf(schema, PandasUDFType.GROUPED_MAP)
+# @pandas_udf(schema, PandasUDFType.GROUPED_MAP)
 
 def time_series_generator_pandas_udf(pdf):
   out_df = date_range.assign(
@@ -284,7 +283,7 @@ def time_series_generator_pandas_udf(pdf):
 demand_df = ( 
   product_hierarchy_extended 
   .groupby("Product", "SKU") 
-  .apply(time_series_generator_pandas_udf) 
+  .applyInPandas(time_series_generator_pandas_udf, sku_ts_schema) 
   .withColumn("Demand" , col("Demand") * col("Corona_Factor")) 
   .withColumn("Demand", when(col("Corona_Breakpoint_Helper") == 0,   
                              col("Demand") + trend_factor_before_corona * sqrt(col("Row_Number"))) 
@@ -339,8 +338,3 @@ demand_df.write \
 .mode("overwrite") \
 .format("delta") \
 .save('/FileStore/tables/demand_forecasting_solution_accellerator/demand_df_delta/')
-
-
-# COMMAND ----------
-
-
