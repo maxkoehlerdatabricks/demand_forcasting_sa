@@ -212,11 +212,8 @@ def log_to_mlflow(product_pdf: pd.DataFrame) -> pd.DataFrame:
   Instead we can group the SKU models/artifacts by e.g. Product to create a more organized hierarchy 
   """
   PRODUCT = product_pdf["Product"].iloc[0]
-  SKUS = list(product_pdf["SKU"].unique())
   product_model = ProductModelWrapper(product=PRODUCT)
 
-  print(PRODUCT)
-  
   # MLOps: parameter, metric, and artifact logging
   with mlflow.start_run(run_name=PRODUCT):
     mlflow.log_param("Product", PRODUCT)
