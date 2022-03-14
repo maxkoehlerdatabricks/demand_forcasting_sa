@@ -37,7 +37,7 @@ from pyspark.sql.functions import col
 # COMMAND ----------
 
 forecast_horizon = 40
-corona_breakpoint = datetime.date(year=2020, month=3, day=1)
+covid_breakpoint = datetime.date(year=2020, month=3, day=1)
 
 # COMMAND ----------
 
@@ -98,7 +98,7 @@ pdf = demand_df.join(demand_df.sample(False, 1 / demand_df.count(), seed=0).limi
 print(pdf)
 
 # Create single series 
-series_df= pd.Series(pdf['Demand'].values, index=pdf['Date'])
+series_df = pd.Series(pdf['Demand'].values, index=pdf['Date'])
 series_df = series_df.asfreq(freq='W-MON')
 print(series_df)
 
@@ -140,11 +140,12 @@ score = series_df.iloc[~np.array(is_history)]
 exo_df = pdf.assign(Week = pd.DatetimeIndex(pdf["Date"]).isocalendar().week.tolist()) 
 
 exo_df = exo_df \
-  .assign(AfterCorona = np.where(pdf["Date"] >= np.datetime64(corona_breakpoint), 1, 0).tolist()  ) \
-  .assign(AfterXMas = np.where((exo_df["Week"] >= 1) & (exo_df["Week"] <= 4)  , 1, 0).tolist()) \
+  .assign(covid = np.where(pdf["Date"] >= np.datetime64(covid_breakpoint), 1, 0).tolist()) \
+  .assign(christmas = np.where((exo_df["Week"] >= 51) & (exo_df["Week"] <= 52) , 1, 0).tolist()) \
+  .assign(new_year = np.where((exo_df["Week"] >= 1) & (exo_df["Week"] <= 4)  , 1, 0).tolist()) \
   .set_index('Date')
 
-exo_df = exo_df[["AfterCorona", "AfterXMas"]]
+exo_df = exo_df[["covid", "christmas", "new_year" ]]
 exo_df = exo_df.asfreq(freq='W-MON')
 print(exo_df)
 
@@ -309,10 +310,10 @@ plt.title("Holts Winters Seasonal Method")
 # COMMAND ----------
 
 fit1 = SARIMAX(train, exog=train_exo, order=(2, 3, 2), seasonal_order=(0, 0, 0, 0), initialization_method="estimated").fit(warn_convergence = False)
-fcast1 = fit1.predict(start = min(train.index), end = max(score_exo.index), exog = score_exo ).rename("With exogenous variables")
+fcast1 = fit1.predict(start = min(train.index), end = max(score_exo.index), exog = score_exo).rename("With exogenous variables")
 
 fit2 = SARIMAX(train, order=(2, 3, 2), seasonal_order=(0, 0, 0, 0), initialization_method="estimated").fit(warn_convergence = False)
-fcast2 = fit2.predict(start = min(train.index), end = max(score_exo.index), exog = score_exo ).rename("Without exogenous variables")
+fcast2 = fit2.predict(start = min(train.index), end = max(score_exo.index), exog = score_exo).rename("Without exogenous variables")
 
 # COMMAND ----------
 
@@ -348,7 +349,7 @@ plt.title("SARIMAX")
 
 def evaluate_model(hyperopt_params):
   
-  # configure model parameters
+  # Configure model parameters
   params = hyperopt_params
   
   assert "p" in params and "d" in params and "q" in params, "Please provide p, d, and q"
@@ -359,8 +360,8 @@ def evaluate_model(hyperopt_params):
     
   order_parameters = (params['p'],params['d'],params['q'])
 
-  # for this example, assume no seasonality
-  model1 = SARIMAX(train, exog= train_exo, order=order_parameters, seasonal_order=(0, 0, 0, 0))
+  # For simplicity in this example, assume no seasonality
+  model1 = SARIMAX(train, exog=train_exo, order=order_parameters, seasonal_order=(0, 0, 0, 0))
   fit1 = model1.fit(disp=False)
   fcast1 = fit1.predict(start = min(score_exo.index), end = max(score_exo.index), exog = score_exo )
 
