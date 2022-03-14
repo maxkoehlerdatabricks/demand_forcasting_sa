@@ -18,6 +18,8 @@
 
 import os
 import json
+import pickle
+
 import datetime
 from random import random
 import numpy as np
@@ -28,9 +30,9 @@ import matplotlib.dates as md
 
 import seaborn
 
-
 from statsmodels.tsa.api import ExponentialSmoothing, SimpleExpSmoothing, Holt
 from statsmodels.tsa.statespace.sarimax import SARIMAX
+from sklearn.metrics import mean_absolute_percentage_error
 
 import mlflow
 import hyperopt
@@ -113,7 +115,7 @@ def build_and_tune_model(sku_pdf: pd.DataFrame) -> pd.DataFrame:
     'q': scope.int(hyperopt.hp.quniform('q', 0, 4, 1)) 
   }
   
-  def _score(hparams):
+  def _score(hparams, final_fit=False):
     # SARIMAX requires a tuple of Python integers
     order_hparams = tuple([int(hparams[k]) for k in ("p", "d", "q")])
     model = SARIMAX(
@@ -125,12 +127,20 @@ def build_and_tune_model(sku_pdf: pd.DataFrame) -> pd.DataFrame:
     fit = model.fit(disp=False)
     fcast = fit.predict(start = min(score_data.index), end = max(score_data.index), exog = score_exo)
     loss = np.power(score_data.to_numpy() - fcast.to_numpy(), 2).mean()
-    return loss
+    mape = mean_absolute_percentage_error(score_data.to_numpy(), fcast.to_numpy())
+    
+    if final_fit:
+      return loss, fit, mape
+    else:
+      return loss
     
   # Iterate over search space
   best_hparams = fmin(_score, search_space, algo=tpe.suggest, max_evals=3)
+  # Perform final fit
+  loss, fit, mape = _score(best_hparams, final_fit=True)
+  
   return pd.DataFrame(
-    {'Product':[PRODUCT], 'SKU':[SKU], 'best_hparams':[json.dumps(best_hparams)]}
+    {'Product':[PRODUCT], 'SKU':[SKU],'mean_absolute_percentage_error': [mape], 'best_hparams':[json.dumps(best_hparams)], 'model_binary': [pickle.dumps(fit)]}
   )
 
 # COMMAND ----------
@@ -147,7 +157,9 @@ tuning_schema = StructType(
   [
     StructField('Product', StringType()),
     StructField('SKU', StringType()),
-    StructField('best_hparams', StringType())
+    StructField('mean_absolute_percentage_error', FloatType()),
+    StructField('best_hparams', StringType()),
+    StructField('model_binary', BinaryType()),
   ]
 )
 
@@ -160,7 +172,7 @@ tuned_df = tuned_df.cache() # cache tuning results, most likely will be re-using
 
 # COMMAND ----------
 
-display(tuned_df)
+display(tuned_df.select("Product", "SKU", "mean_absolute_percentage_error", "best_hparams"))
 
 # COMMAND ----------
 
@@ -176,34 +188,16 @@ display(tuned_df)
 
 # COMMAND ----------
 
-tuned_pdf = tuned_df.toPandas()
-
-# COMMAND ----------
-
-json.loads(tuned_pdf["best_hparams"].iloc[0])
-
-# COMMAND ----------
-
-# DBTITLE 1,Set up MLflow experiment
-# Create an experiment name, which must be unique and case sensitive
-experiment_id = mlflow.create_experiment("/Users/pawarit.laosunthara@databricks.com/Part-Level Demand Forecasting")
-experiment = mlflow.get_experiment(experiment_id)
-
-print("Name: {}".format(experiment.name))
-print("Experiment_id: {}".format(experiment.experiment_id))
-print("Artifact Location: {}".format(experiment.artifact_location))
-print("Tags: {}".format(experiment.tags))
-print("Lifecycle_stage: {}".format(experiment.lifecycle_stage))
-
-# COMMAND ----------
-
 class ProductModelWrapper(mlflow.pyfunc.PythonModel):
 
-  def __init__(self):
+  def __init__(self, product):
+    self.product = product
     self.models = {}
+    self.hparams = {}
 
-  def add_model(self, sku, fit):
+  def add(self, sku, fit, hparams):
     self.models[sku] = fit
+    self.hparams[sku] = hparams
 
   def predict(self, context, sku, data, exog):
     if sku not in self.models.keys():
@@ -212,59 +206,58 @@ class ProductModelWrapper(mlflow.pyfunc.PythonModel):
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-def log_to_mlflow(product_pdf: pd.DataFrame, sku_pdf: pd.DataFrame) -> pd.DataFrame:
+def log_to_mlflow(product_pdf: pd.DataFrame) -> pd.DataFrame:
   """
   In case there are millions of SKUs, it might be overwhelming to log/retrieve data to/from the MLflow server for every individual SKU.
   Instead we can group the SKU models/artifacts by e.g. Product to create a more organized hierarchy 
   """
-  
-  # Always ensure proper ordering by Date
-  sku_pdf.sort_values("Date", inplace=True)
-  
-  # Since we'll group the large Spark DataFrame by (Product, SKU)
-  PRODUCT = sku_pdf["Product"].iloc[0]
-  SKU = sku_pdf["SKU"].iloc[0]
-    
-  # Create univariate time series indexed by Date 
-  demand_series = pd.Series(sku_pdf['Demand'].values, index=sku_pdf['Date'])
-  demand_series = demand_series.asfreq(freq='W-MON')
-  train_data, score_data = split_train_score_data(demand_series)
-  
-  exo_df = define_exo_variables(sku_pdf)
-  train_exo, score_exo = split_train_score_data(exo_df) 
+  PRODUCT = product_pdf["Product"].iloc[0]
+  SKUS = list(product_pdf["SKU"].unique())
+  product_model = ProductModelWrapper(product=PRODUCT)
 
-  for idx, sku_row in product_pdf.iterrows():
+  print(PRODUCT)
+  
+  # MLOps: parameter, metric, and artifact logging
+  with mlflow.start_run(run_name=PRODUCT):
+    mlflow.log_param("Product", PRODUCT)
     
-    PRODUCT = sku_row["Product"]
-    SKU = sku_row["SKU"]
-    hparams = json.loads(sku_row["best_hparams"])
-    
-    order_hparams = tuple([int(hparams[k]) for k in ("p", "d", "q")])
-    model = SARIMAX(
-      train_data, 
-      exog=train_exo, 
-      order=order_hparams, 
-      seasonal_order=(0, 0, 0, 0)
-    )
-    fit = model.fit(disp=False)
-    print(fit)
-    
-#   with mlflow.start_run(experiment_id = experiment, run_name = PRODUCT):
-#     mlflow.log_param()
-#     mlflow.log_metric('auc', auc_score)
+    for idx, sku_row in product_pdf.iterrows():
+      sku = sku_row["SKU"]
+      mlflow.log_param(f"{sku}_best_hparams", sku_row["best_hparams"])
+      mlflow.log_metric(f"{sku}_mean_absolute_percentage_error", sku_row["mean_absolute_percentage_error"])
+      # you can even log artifacts such as plots/charts
+      # mlflow.log_artifact(...)
+      
+      # Build up hierarchical model
+      best_hparams = json.loads(sku_row["best_hparams"])
+      fit = pickle.loads(sku_row["model_binary"])
+      product_model.add(sku, fit, best_hparams)
+      
+    # Finally, log hierarchical model - each product model contains underlying SARIMAX models for each SKU
+    mlflow.pyfunc.log_model(f"{PRODUCT}_SARIMAX_model", python_model=product_model)
+      
+  return pd.DataFrame({"Product": [PRODUCT], "Status": ["FINISHED"]})
 
 # COMMAND ----------
 
-tuned_pdf = tuned_pdf.loc[tuned_pdf["SKU"] == "SRR_IMME9B"]
+unique_products = tuned_df.select("Product").dropDuplicates().toPandas()
+n_unique_products = len(unique_products)
+
+spark.conf.set("spark.sql.shuffle.partitions", n_unique_products)
+
+logging_return_schema = StructType(
+  [
+    StructField('Product', StringType()),
+    StructField('Status', StringType()),
+  ]
+)
+
+logged_df = (
+  tuned_df
+  .groupBy("Product")
+  .applyInPandas(log_to_mlflow, schema=logging_return_schema)
+)
 
 # COMMAND ----------
 
-# sku_lolz
-
-# COMMAND ----------
-
-log_to_mlflow(tuned_pdf, sku_lolz)
+display(logged_df)
