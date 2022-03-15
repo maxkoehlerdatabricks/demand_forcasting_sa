@@ -309,11 +309,11 @@ plt.title("Holts Winters Seasonal Method")
 
 # COMMAND ----------
 
-fit1 = SARIMAX(train, exog=train_exo, order=(2, 3, 2), seasonal_order=(0, 0, 0, 0), initialization_method="estimated").fit(warn_convergence = False)
+fit1 = SARIMAX(train, exog=train_exo, order=(2, 3, 3), seasonal_order=(0, 0, 0, 0), initialization_method="estimated").fit(warn_convergence = False)
 fcast1 = fit1.predict(start = min(train.index), end = max(score_exo.index), exog = score_exo).rename("With exogenous variables")
 
-fit2 = SARIMAX(train, order=(2, 3, 2), seasonal_order=(0, 0, 0, 0), initialization_method="estimated").fit(warn_convergence = False)
-fcast2 = fit2.predict(start = min(train.index), end = max(score_exo.index), exog = score_exo).rename("Without exogenous variables")
+fit2 = SARIMAX(train, order=(2, 3, 3), seasonal_order=(0, 0, 0, 0), initialization_method="estimated").fit(warn_convergence = False)
+fcast2 = fit2.predict(start = min(train.index), end = max(score_exo.index)).rename("Without exogenous variables")
 
 # COMMAND ----------
 
