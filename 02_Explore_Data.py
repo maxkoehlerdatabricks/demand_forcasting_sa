@@ -46,12 +46,7 @@ covid_breakpoint = datetime.date(year=2020, month=3, day=1)
 
 # COMMAND ----------
 
-data_path = '/FileStore/tables/demand_forecasting_solution_accellerator/demand_df_delta/'
-demand_df = spark \
-  .read \
-  .format("delta") \
-  .load(data_path)
-
+demand_df = spark.read.table("demand_db.part_level_demand")
 display(demand_df)
 
 # COMMAND ----------
@@ -93,8 +88,10 @@ for product_loop in demand_df.select("Product").distinct().collect():
 
 # COMMAND ----------
 
-# Extract a signle time series and convert to pandas dataframe
-pdf = demand_df.join(demand_df.sample(False, 1 / demand_df.count(), seed=0).limit(1).select("SKU"), on=["SKU"], how="inner").toPandas()
+# Example: extract a single time series and convert to pandas dataframe
+example_sku = demand_df.select("SKU").orderBy("SKU").limit(1).collect()[0].SKU
+print("example_sku:", example_sku)
+pdf = demand_df.filter(F.col("SKU") == example_sku).toPandas()
 print(pdf)
 
 # Create single series 
@@ -309,11 +306,11 @@ plt.title("Holts Winters Seasonal Method")
 
 # COMMAND ----------
 
-fit1 = SARIMAX(train, exog=train_exo, order=(2, 3, 3), seasonal_order=(0, 0, 0, 0), initialization_method="estimated").fit(warn_convergence = False)
-fcast1 = fit1.predict(start = min(train.index), end = max(score_exo.index), exog = score_exo).rename("With exogenous variables")
+fit1 = SARIMAX(train, order=(1, 2, 1), seasonal_order=(0, 0, 0, 0), initialization_method="estimated").fit(warn_convergence = False)
+fcast1 = fit1.predict(start = min(train.index), end = max(score_exo.index)).rename("Without exogenous variables")
 
-fit2 = SARIMAX(train, order=(2, 3, 3), seasonal_order=(0, 0, 0, 0), initialization_method="estimated").fit(warn_convergence = False)
-fcast2 = fit2.predict(start = min(train.index), end = max(score_exo.index)).rename("Without exogenous variables")
+fit2 = SARIMAX(train, exog=train_exo, order=(1, 2, 1), seasonal_order=(0, 0, 0, 0), initialization_method="estimated").fit(warn_convergence = False)
+fcast2 = fit2.predict(start = min(train.index), end = max(score_exo.index), exog = score_exo).rename("With exogenous variables")
 
 # COMMAND ----------
 
@@ -376,7 +373,7 @@ def evaluate_model(hyperopt_params):
 
 space = {
   'p': scope.int(hyperopt.hp.quniform('p', 0, 4, 1)),
-  'd': scope.int(hyperopt.hp.quniform('d', 0, 4, 1)),
+  'd': scope.int(hyperopt.hp.quniform('d', 0, 2, 1)),
   'q': scope.int(hyperopt.hp.quniform('q', 0, 4, 1)) 
 }
 
@@ -387,14 +384,17 @@ space = {
 
 # COMMAND ----------
 
+rstate = np.random.RandomState(123)
+
 with mlflow.start_run(run_name='mkh_test_sa'):
   argmin = fmin(
     fn=evaluate_model,
     space=space,
     algo=tpe.suggest,  # algorithm controlling how hyperopt navigates the search space
-    max_evals=30,
+    max_evals=10,
     trials=SparkTrials(parallelism=1),
-    verbose=True
+    rstate=rstate,
+    verbose=False
     )
 
 # COMMAND ----------

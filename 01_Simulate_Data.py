@@ -18,7 +18,6 @@ from dateutil import rrule
 import string
 import random
 
-
 from pyspark.sql.functions import pandas_udf, PandasUDFType, concat_ws
 from pyspark.sql.types import StructType,StructField, StringType, DateType
 
@@ -65,14 +64,13 @@ display(product_identifier_lookup)
 # Define schema of output data-frame
 product_hierarchy_schema = StructType([StructField("SKU_Postfix", StringType(), True)] + product_identifier_lookup.schema.fields)
 
-#Help-function to generate a random string
+# Help-function to generate a random string
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
-  
 # Create a Pandas UDF to simulate unique SKU's, i.e. n random strings without repetition
 def id_sequence_generator(pdf):
-    
+  random.seed(123)
   res = set()
   while True:
     res.add(id_generator())
@@ -80,15 +78,11 @@ def id_sequence_generator(pdf):
       break
   
   pdf_out = pd.DataFrame()
-  
   pdf_out["SKU_Postfix"] = list(res)
-  
   pdf_out["Product"] = pdf["Product"].iloc[0]
   pdf_out["SKU_Prefix"] = pdf["SKU_Prefix"].iloc[0]
   
-  
   return pdf_out
-
 
 # Apply the Pandas UDF and clean up
 product_hierarchy = ( \
@@ -127,7 +121,7 @@ date_range = pd.DataFrame(date_range, columns =['Date'])
 min_date = np.min(date_range.Date[ date_range.Date >=  corona_breakpoint ])
 breakpoint = date_range.Date.searchsorted(min_date, side='left')
 help_list = [0] * (breakpoint -1) + list(range(0, len(date_range) - breakpoint + 1))
-assert len(help_list) == len(date_range), "Longth of help_list is ambigious"
+assert len(help_list) == len(date_range), "Length of help_list is ambigious"
 date_range = date_range.assign(Corona_Breakpoint_Helper = help_list)
 
 # Derive Corona correction factor for demand
@@ -182,6 +176,7 @@ arma_schema = StructType(
 )
 
 # Generate random numbers for the ARMA process
+np.random.seed(123)
 n_ = product_identifier_lookup.count()
 variance_random_number = list(abs(np.random.normal(100, 50, n_)))
 offset_random_number = list(np.maximum(abs(np.random.normal(10000, 5000, n_)), 4000))
@@ -224,13 +219,12 @@ from pyspark.sql.functions import row_number, sqrt, round
 
 # function to generate an ARMA process
 def generate_arma(arparams, maparams, var, offset, number_of_points, plot):
+  np.random.seed(123)
   ar = np.r_[1, arparams] 
   ma = np.r_[1, maparams] 
   y = sm.tsa.arma_generate_sample(ar, ma, number_of_points, scale=var, burnin= 3000) + offset
   #y = np.round(y).astype(int)
   
-
-
   if plot:
     x = np.arange(1, len(y) +1)
     plt.plot(x, y, color ="red")
@@ -252,11 +246,8 @@ sku_ts_schema = StructType(  product_hierarchy.schema.fields +
                       
                     ])
 
-
-
 # Generate an ARMA
 #pdf = product_hierarchy_extended.toPandas().head(1)
-
 
 # Generate a time series with random parameters
 # @pandas_udf(schema, PandasUDFType.GROUPED_MAP)
@@ -298,7 +289,7 @@ display(demand_df)
 
 # COMMAND ----------
 
-# Plot indivudual series
+# Plot individual series
 res_table = demand_df.toPandas()
 all_combis = res_table[[ "Product" , "SKU" ]].drop_duplicates()
 random_series_to_plot = pd.merge(  res_table,   all_combis.iloc[[random.choice(list(range(len(all_combis))))]] ,  on =  [ "Product" , "SKU" ], how = "inner" )
@@ -326,10 +317,7 @@ display(demand_df.join(demand_df.sample(False, 1 / demand_df.count(), seed=0).li
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC CREATE DATABASE IF NOT EXISTS demand_db;
-# MAGIC DROP TABLE IF EXISTS demand_db.demand_df_delta;
-# MAGIC CREATE TABLE demand_db.demand_df_delta USING DELTA LOCATION '/FileStore/tables/demand_forecasting_solution_accellerator/demand_df_delta/'
+demand_df.count()
 
 # COMMAND ----------
 
@@ -337,4 +325,23 @@ display(demand_df.join(demand_df.sample(False, 1 / demand_df.count(), seed=0).li
 demand_df.write \
 .mode("overwrite") \
 .format("delta") \
-.save('/FileStore/tables/demand_forecasting_solution_accellerator/demand_df_delta/')
+.save('/FileStore/tables/demand_forecasting_solution_accelerator/demand_df_delta/')
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC CREATE DATABASE IF NOT EXISTS demand_db;
+# MAGIC DROP TABLE IF EXISTS demand_db.part_level_demand;
+# MAGIC CREATE TABLE demand_db.part_level_demand USING DELTA LOCATION '/FileStore/tables/demand_forecasting_solution_accelerator/demand_df_delta/'
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC 
+# MAGIC SELECT * FROM demand_db.part_level_demand
+
+# COMMAND ----------
+
+# MAGIC %sql 
+# MAGIC 
+# MAGIC SELECT COUNT(*) as row_count FROM demand_db.part_level_demand
