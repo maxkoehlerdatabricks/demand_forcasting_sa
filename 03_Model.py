@@ -114,7 +114,7 @@ display(enriched_df)
 
 # MAGIC %md
 # MAGIC 
-# MAGIC ## Pandas function to build and tune a model per each SKU
+# MAGIC ## Pandas UDF logic: build and tune a model per each SKU
 
 # COMMAND ----------
 
@@ -205,7 +205,7 @@ tuning_schema = StructType(
 
 # MAGIC %md
 # MAGIC 
-# MAGIC ### Run Pandas UDF grouped at the SKU level
+# MAGIC ### Run distributed processing: group by SKU then apply Pandas UDF from above
 
 # COMMAND ----------
 
@@ -215,7 +215,7 @@ tuned_df = (
   .applyInPandas(build_and_tune_model, schema=tuning_schema)
 )
 
-tuned_df = tuned_df.cache() # cache the tuning results, most likely will be re-using them!
+tuned_df = tuned_df.cache() # cache these results, in case we want to re-use them in our workflow
 display(tuned_df.select("Product", "SKU", "mean_absolute_percentage_error", "mean_squared_error", "best_hparams"))
 
 # COMMAND ----------
@@ -228,7 +228,7 @@ display(tuned_df.select("Product", "SKU", "mean_absolute_percentage_error", "mea
 
 # MAGIC %md
 # MAGIC 
-# MAGIC #### Let's log the parameters, metrics, and model artifacts in an organized manne
+# MAGIC #### Track the parameters, metrics, and model artifacts in an organized way
 # MAGIC 
 # MAGIC Although we could've simply returned the forecast results as the output of the Pandas UDF above, it can often be beneficial to break down our workflow into a few steps:
 # MAGIC 1. Model training and tuning by SKU
@@ -326,7 +326,12 @@ display(logged_df)
 
 # COMMAND ----------
 
-# DBTITLE 1,Example: load saved model from MLflow
+# MAGIC %md 
+# MAGIC 
+# MAGIC #### Example: load saved model from MLflow for single node use
+
+# COMMAND ----------
+
 import mlflow
 logged_model = 'runs:/b49d40caf9df47838aff0e3a1af1aafc/Short_Range_Lidar_SRR_1IDZ5T_SARIMAX_model'
 
@@ -362,3 +367,9 @@ fig.add_scatter(
 fig.update_layout(yaxis = dict(range=[4000, 18000]))
 fig.add_vline(x="2020-10-12", line_width=3, line_dash="dash")
 fig.show()
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC 
+# MAGIC #### Save all forecast results
