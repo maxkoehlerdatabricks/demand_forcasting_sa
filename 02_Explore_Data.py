@@ -6,6 +6,12 @@
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC 
+# MAGIC <img src ='https://github.com/tarik-missionAI/demo-databricks/raw/main/delta-perf/ressources/pl_forecasting_architecture.png' width="60%" style="float: right; margin-left: 50px">
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC # Packages and Parameters
 
 # COMMAND ----------

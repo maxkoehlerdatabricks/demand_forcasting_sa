@@ -8,6 +8,12 @@
 
 # MAGIC %md
 # MAGIC 
+# MAGIC <img src ='https://github.com/tarik-missionAI/demo-databricks/raw/main/delta-perf/ressources/pl_forecasting_architecture.png' width="60%" style="float: right; margin-left: 50px">
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC 
 # MAGIC *Prerequisite: Make sure to run the data simulation notebook 01_Simulate_Data before running this notebook.*
 # MAGIC 
 # MAGIC While the previous notebook *(02_Explore_Data)* demonstrated the benefits of Databricks' collaborative and interactive environment,  

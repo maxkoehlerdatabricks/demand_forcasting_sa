@@ -2,6 +2,9 @@
 # MAGIC %md
 # MAGIC 
 # MAGIC # Part-Level Demand forecasting 
+# MAGIC 
+# MAGIC <img src ='https://github.com/tarik-missionAI/demo-databricks/raw/main/delta-perf/ressources/pl_forcasting_storyline.png' width="80%" style="float: right; margin-left: 50px">
+# MAGIC 
 # MAGIC Demand forecasting is an integral business process for manufacturers. Manufacturers require accurate forecasts in order to:  
 # MAGIC 1. plan the scaling of manufacturing operations
 # MAGIC 2. ensure sufficient inventory
@@ -16,6 +19,9 @@
 # MAGIC - Highly optimized safety stock that allowed maximizing turn-rates, provided fairly good service-delivery performance
 # MAGIC - An optimized production planning by tracing back production outputs to raw material level using the bill of materials (BoM)
 # MAGIC 
+# MAGIC With this low volatility, it was OK to forecast demand for just a limited subset of parts like high runners, manage the rest through inventory level by set high minumum safety stock and monitor aggregated view of the data as the responbality and sku catalog were not evolving much. It looked at bit like this:
+# MAGIC 
+# MAGIC <img src ='https://github.com/tarik-missionAI/demo-databricks/raw/main/delta-perf/ressources/pl_forecasting_limitations.png' width="50%" style="float: right; margin-left: 50px">
 # MAGIC 
 # MAGIC However, since the pandemic, demand has seen huge volatility and fluctuations. Demand dropped hugely in the early days, led by a V-shaped recovery that resulted in underplanning. The resulting increase in orders to lower-tier manufacturers in fact evoked the first phase of a supplier crisis. In essence, production output no longer matched actual demand, with any increases in volatility often leading to unjustified recommendations to increase safety stock. Production and sales planning were forced by the availability of raw materials rather than driven by the actual demand. Standard demand planning approaches were approaching major limits.
 # MAGIC 
@@ -32,6 +38,8 @@
 # MAGIC 
 # MAGIC 
 # MAGIC In this solution accelerator, we will show-case the benefits of using Databricks on a simulated data set. We assume the role of a tier one automotive manufacturer producing advanced driver assistance systems. We can first use collaborative notebooks to flexibly explore a set of time series models in depth. Finally, we then demonstrate the ability to train and deploy the models at scale using Databricks’ ability to distribute and parallelize data science workflows with minimal code changes.
+# MAGIC 
+# MAGIC <img src ='https://github.com/tarik-missionAI/demo-databricks/raw/main/delta-perf/ressources/pl_forecasting_userjourney.png' width="50%" style="float: right; margin-left: 50px">
 
 # COMMAND ----------
 
