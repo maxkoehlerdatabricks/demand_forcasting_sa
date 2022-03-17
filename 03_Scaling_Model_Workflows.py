@@ -129,7 +129,7 @@ display(enriched_df)
 # MAGIC - Continue using your favorite libraries
 # MAGIC - Simply assume you're working a Pandas DataFrame for a single SKU
 # MAGIC 
-# MAGIC <img src="https://github.com/PawaritL/data-ai-world-tour-dsml-jan-2022/blob/ad4e9588ba924a6677acd6611e7f0e64117c99c7/pandas-udf-workflow.png?raw=true" width=40%>
+# MAGIC <img src="https://github.com/PawaritL/data-ai-world-tour-dsml-jan-2022/blob/main/pandas-udf-workflow.png?raw=true" width=40%>
 
 # COMMAND ----------
 
@@ -182,7 +182,7 @@ def build_and_tune_model(sku_pdf: pd.DataFrame) -> pd.DataFrame:
       return loss, fitted_model, mape
     else: # for standard hyperparameter tuning
       return loss
-    
+  
   # Iterate over search space for ARIMA parameters
   search_space = {
     'p': scope.int(hyperopt.hp.quniform('p', 0, 4, 1)),
@@ -311,9 +311,7 @@ def log_to_mlflow(product_pdf: pd.DataFrame) -> pd.DataFrame:
   PRODUCT = product_pdf["Product"].iloc[0]
   SKU_LIST = list(product_pdf["SKU"].unique())
   
-  # MLOps: parameter, metric, and artifact logging
-  # we can use nested MLflow runs for easier organization
-  with mlflow.start_run(run_name=PRODUCT) as parent_run:
+  with mlflow.start_run(run_name=PRODUCT) as parent_run: # nest MLflow runs for easier organization
     mlflow.log_param("Product", PRODUCT)
     mlflow.log_param("SKUs", SKU_LIST)
     mlflow.log_metric("max_mape", product_pdf["mean_absolute_percentage_error"].max())
@@ -326,13 +324,12 @@ def log_to_mlflow(product_pdf: pd.DataFrame) -> pd.DataFrame:
         mlflow.log_param("SKU", SKU)
         mlflow.log_param("best_hparams", sku_row["best_hparams"])
         mlflow.log_metric("mape", sku_row["mean_absolute_percentage_error"])
-        # you can even log artifacts such as plots/charts
-        # mlflow.log_artifact(...)
+        # mlflow.log_artifact(...) # you can even log artifacts e.g. plots/charts
       
         best_hparams = json.loads(sku_row["best_hparams"])
         fitted_model = pickle.loads(sku_row["model_binary"])
         sku_model = SKUModelWrapper(fitted_model)
-        # Finally, log model - each product model contains underlying SARIMAX models for each SKU
+        # Log each SKU model
         mlflow.pyfunc.log_model(
           f"{PRODUCT.replace(' ', '_')}_{SKU}_SARIMAX_model", 
           python_model=sku_model
@@ -454,4 +451,4 @@ fig.show()
 # MAGIC 2. <a>**MLflow**</a> helps productionize your model development workflow to ensure traceability and reproducibility  
 # MAGIC 3. ***No MLOps without DataOps:*** <br> <a>**Delta Lake**</a> allows you to save data/forecasts to your data lake with proper data management <br> (e.g. data versioning, time travel, fine-grained updates/deletes)
 # MAGIC 
-# MAGIC <img src="https://github.com/PawaritL/data-ai-world-tour-dsml-jan-2022/blob/ad4e9588ba924a6677acd6611e7f0e64117c99c7/pandas-udf-workflow.png?raw=true" width=38%>
+# MAGIC <img src="https://github.com/PawaritL/data-ai-world-tour-dsml-jan-2022/blob/main/pandas-udf-workflow.png?raw=true" width=38%>
