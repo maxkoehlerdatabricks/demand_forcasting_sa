@@ -245,7 +245,7 @@ display(tuned_df)
 
 # MAGIC %md
 # MAGIC 
-# MAGIC ## Log and organize details at the Product Level
+# MAGIC ## Log and organize details at the Product level
 
 # COMMAND ----------
 
