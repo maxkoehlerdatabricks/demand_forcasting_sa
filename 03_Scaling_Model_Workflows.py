@@ -127,7 +127,7 @@ display(enriched_df)
 # MAGIC #### Benefits
 # MAGIC - Pure Python & Pandas: easy to develop, test
 # MAGIC - Continue using your favorite libraries
-# MAGIC - Simply assume you're working a Pandas DataFrame for a single SKU
+# MAGIC - Simply assume you're working with a Pandas DataFrame for a single SKU
 # MAGIC 
 # MAGIC <img src="https://github.com/PawaritL/data-ai-world-tour-dsml-jan-2022/blob/main/pandas-udf-workflow.png?raw=true" width=40%>
 
