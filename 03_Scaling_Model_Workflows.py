@@ -425,16 +425,32 @@ import plotly.express as px
     
 fig = px.line(example_inference_pdf, x="Date", y="Demand", title=f"Part-Level Forecast: SKU={example_sku}")
 fig.update_traces(name="True Demand", showlegend=True)
+
+in_sample_predictions_pdf = example_inference_pdf.loc[example_inference_pdf["Date"] <= in_sample_pdf["Date"].max()]
+out_of_sample_forecast_pdf = example_inference_pdf.loc[example_inference_pdf["Date"] > in_sample_pdf["Date"].max()]
+
 fig.add_scatter(
-  x=example_inference_pdf["Date"], y=example_inference_pdf["prediction"], 
+  x=in_sample_predictions_pdf["Date"], y=in_sample_predictions_pdf["prediction"], 
   mode="markers", 
   marker=dict(
     size=5, 
     color="LightSeaGreen",
     opacity=0.69
   ), 
-  name="Predicted"
+  name="In-Sample Predictions"
 )
+
+fig.add_scatter(
+  x=out_of_sample_forecast_pdf["Date"], y=out_of_sample_forecast_pdf["prediction"], 
+  mode="markers", 
+  marker=dict(
+    size=5, 
+    color="Orange",
+    opacity=0.69
+  ), 
+  name="Out-of-Sample Forecast"
+)
+
 fig.update_layout(yaxis = dict(range=[4000, 18000]))
 fig.add_vline(x=in_sample_pdf["Date"].max(), line_width=3, line_dash="dash")
 fig.show()
