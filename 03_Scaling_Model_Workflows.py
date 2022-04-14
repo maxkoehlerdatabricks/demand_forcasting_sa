@@ -310,10 +310,12 @@ def log_to_mlflow(product_pdf: pd.DataFrame) -> pd.DataFrame:
   """
   PRODUCT = product_pdf["Product"].iloc[0]
   SKU_LIST = list(product_pdf["SKU"].unique())
+  product_details = {"product": PRODUCT, "sku_list": SKU_LIST}
+  product_underscores = PRODUCT.replace(" ", "_")
   
   with mlflow.start_run(run_name=PRODUCT) as parent_run: # nest MLflow runs for easier organization
     mlflow.log_param("Product", PRODUCT)
-    mlflow.log_param("SKUs", SKU_LIST)
+    mlflow.log_dict(product_details, f"{product_underscores}_details.json")
     mlflow.log_metric("max_mape", product_pdf["mean_absolute_percentage_error"].max())
     mlflow.log_metric("mean_mape", product_pdf["mean_absolute_percentage_error"].mean())
     
