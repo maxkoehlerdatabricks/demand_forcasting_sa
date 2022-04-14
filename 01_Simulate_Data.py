@@ -39,8 +39,8 @@ trend_factor_before_corona = 100 # date information: trend before Corona
 # Create a Product Table
 #################################################
 
-data = [("Long Range Lidar",  "LRR"),
-    ("Short Range Lidar", "SRR"),
+data = [("Long Range Lidar",  "LRL"),
+    ("Short Range Lidar", "SRL"),
     ("Camera", "CAM"),
     ("Long Range Radar", "LRR"),
     ("Short Range Radar", "SRR")
