@@ -212,7 +212,7 @@ demand_pdf = demand_df.toPandas()
 unique_skus = demand_df.select("SKU").dropDuplicates().toPandas()
 n_unique_skus = len(unique_skus)
 
-spark.conf.set("spark.sql.shuffle.partitions", n_unique_skus)
+# spark.conf.set("spark.sql.shuffle.partitions", n_unique_skus)
 
 tuning_schema = StructType(
   [
@@ -233,12 +233,17 @@ tuning_schema = StructType(
 
 # COMMAND ----------
 
+# spark.conf.set("spark.sql.adaptive.coalescePartitions.enabled", "false")
+
+# COMMAND ----------
+
 tuned_df = (
   enriched_df
   .groupBy("Product", "SKU") 
   .applyInPandas(build_and_tune_model, schema=tuning_schema)
 )
 tuned_df = tuned_df.cache() # reuse these results later in our workflow
+print(tuned_df.rdd.getNumPartitions())
 display(tuned_df)
 
 # COMMAND ----------
@@ -344,7 +349,7 @@ def log_to_mlflow(product_pdf: pd.DataFrame) -> pd.DataFrame:
 unique_products = tuned_df.select("Product").dropDuplicates().toPandas()
 n_unique_products = len(unique_products)
 
-spark.conf.set("spark.sql.shuffle.partitions", n_unique_products)
+# spark.conf.set("spark.sql.shuffle.partitions", n_unique_products)
 
 logging_return_schema = StructType(
   [
@@ -364,9 +369,10 @@ logging_return_schema = StructType(
 
 logged_df = (
   tuned_df
-  .groupBy("Product")
-  .applyInPandas(log_to_mlflow, schema=logging_return_schema)
+    .groupBy("Product")
+    .applyInPandas(log_to_mlflow, schema=logging_return_schema)
 )
+print(logged_df.rdd.getNumPartitions())
 display(logged_df)
 
 # COMMAND ----------
