@@ -60,7 +60,7 @@ display(demand_df.groupBy("Product").agg(F.countDistinct("SKU").alias("distinctS
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC The data consists of stacked time series. Each product has a number of SKUs and for each SKU there is demand for a given date. The demand time series for each product and SKU are consolidated to a one DataFrame. Each product group has a similar structure:
+# MAGIC The data consists of stacked time series. Each product has a number of SKUs and for each SKU there is demand for a given date. The demand time series for each product and SKU are consolidated to one DataFrame. Each product group has a similar structure:
 # MAGIC - There is a christmas effect with a significant drop in demand before christmas followed by an increase in demand after christmas
 # MAGIC - At approximately the beginning of March in the year 2020, the demand drops to approximately 70%. 
 # MAGIC - Before that, we observe a positive trend with decreasing increments. 
