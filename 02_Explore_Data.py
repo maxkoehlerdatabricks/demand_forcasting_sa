@@ -84,7 +84,7 @@ for product_loop in demand_df.select("Product").distinct().collect():
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC When looking at an arbitrary single time series we again see positive trend, followed by a drop in March 2020, followed by an increase. Next to random fluctuation we observe a christmas effect.
+# MAGIC When looking at an arbitrary single time series we again see a positive trend, followed by a drop in March 2020, followed by an increase. Next to random fluctuation we observe the christmas effect.
 
 # COMMAND ----------
 
@@ -384,7 +384,7 @@ space = {
 
 # COMMAND ----------
 
-rstate = np.random.RandomState(123)
+rstate = np.random.default_rng(123)
 
 with mlflow.start_run(run_name='mkh_test_sa'):
   argmin = fmin(
@@ -404,4 +404,8 @@ with mlflow.start_run(run_name='mkh_test_sa'):
 
 # COMMAND ----------
 
-argmin
+displayHTML(f"The optimal parameters for the selected series with SKU '{pdf.SKU.iloc[0]}' are: d = '{argmin.get('d')}', p = '{argmin.get('p')}' and q = '{argmin.get('q')}'")
+
+# COMMAND ----------
+
+
