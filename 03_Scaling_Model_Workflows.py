@@ -16,15 +16,6 @@
 # MAGIC Key highlights for this notebook:
 # MAGIC - Pandas UDFs (user-defined functions) can take your single-node data science code, and distribute it across different keys (e.g. SKU)  
 # MAGIC - Hyperopt can also perform hyperparameter tuning from within a Pandas UDF  
-# MAGIC - MLflow can track and log all of your parameters, metrics, and artifacts - which can be loaded for later use
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC 
-# MAGIC #### Getting to Production: Industry Pain Points
-# MAGIC 
-# MAGIC <img src="https://github.com/PawaritL/data-ai-world-tour-dsml-jan-2022/blob/main/pain-points.png?raw=true" width=80%>
 
 # COMMAND ----------
 
@@ -135,93 +126,101 @@ display(enriched_df)
 
 # MAGIC %md
 # MAGIC 
-# MAGIC #### Build and tune a model per each SKU with Pandas UDFs
+# MAGIC #### Build, tune ansd score a model per each SKU with Pandas UDFs
 
 # COMMAND ----------
 
-def build_and_tune_model(sku_pdf: pd.DataFrame) -> pd.DataFrame:
+def build_tune_and_score_model(sku_pdf: pd.DataFrame) -> pd.DataFrame:
   """
-  This function trains and tunes a model for each SKU and can be distributed as a Pandas UDF
+  This function trains, tunes and scores a model for each SKU and can be distributed as a Pandas UDF
   """
   # Always ensure proper ordering and indexing by Date
   sku_pdf.sort_values("Date", inplace=True)
   complete_ts = sku_pdf.set_index("Date").asfreq(freq="W-MON")
-  
+
   # Since we'll group the large Spark DataFrame by (Product, SKU)
   PRODUCT = sku_pdf["Product"].iloc[0]
   SKU = sku_pdf["SKU"].iloc[0]
   train_data, validation_data = split_train_score_data(complete_ts)
-  
-  def _score(hparams, final_fit=False):
-    in_sample_data = complete_ts if final_fit else train_data
-    score_data = complete_ts if final_fit else validation_data
-    exo_fields = ["covid", "christmas", "new_year"]
-    # SARIMAX's predict() only accepts exog variables from new (out-of-sample) dates 
-    exog = score_data[exo_fields].loc[score_data.index > in_sample_data.index.max()]
-    # SARIMAX requires a tuple of Python integers
-    order_hparams = tuple([int(hparams[k]) for k in ("p", "d", "q")])
-    
-    model = SARIMAX(
-      in_sample_data["Demand"], 
-      exog=in_sample_data[exo_fields], 
-      order=order_hparams, 
-      seasonal_order=(0, 0, 0, 0), # assume no seasonality in our example
-      initialization_method="estimated"
-    )
-    fitted_model = model.fit(disp=False)
-    fcast = fitted_model.predict(
-      start=score_data.index.min(), 
-      end=score_data.index.max(), 
-      exog=exog
-    )
+  exo_fields = ["covid", "christmas", "new_year"]
 
-    loss = np.power(score_data["Demand"].to_numpy() - fcast.to_numpy(), 2).mean()
-    mape = mean_absolute_percentage_error(score_data["Demand"].to_numpy(), fcast.to_numpy())
-    
-    if final_fit: # for returning final model + key metrics
-      return loss, fitted_model, mape
-    else: # for standard hyperparameter tuning
-      return loss
-  
-  # Iterate over search space for ARIMA parameters
+
+  # Evaluate model on the traing data set
+  def evaluate_model(hyperopt_params):
+
+        # SARIMAX requires a tuple of Python integers
+        order_hparams = tuple([int(hyperopt_params[k]) for k in ("p", "d", "q")])
+
+        # Training
+        model = SARIMAX(
+          train_data["Demand"], 
+          exog=train_data[exo_fields], 
+          order=order_hparams, 
+          seasonal_order=(0, 0, 0, 0), # assume no seasonality in our example
+          initialization_method="estimated",
+          enforce_stationarity = False,
+          enforce_invertibility = False
+        )
+        fitted_model = model.fit(disp=False, method='nm')
+
+        # Validation
+        fcast = fitted_model.predict(
+          start=validation_data.index.min(), 
+          end=validation_data.index.max(), 
+          exog=validation_data[exo_fields]
+        )
+
+        return {'status': hyperopt.STATUS_OK, 'loss': np.power(validation_data.Demand.to_numpy() - fcast.to_numpy(), 2).mean()}
+
   search_space = {
-    'p': scope.int(hyperopt.hp.quniform('p', 0, 4, 1)),
-    'd': scope.int(hyperopt.hp.quniform('d', 0, 2, 1)),
-    'q': scope.int(hyperopt.hp.quniform('q', 0, 4, 1)) 
-  }
-  rstate = np.random.RandomState(123) # just for reproducibility of this notebook
-  
-  best_hparams = fmin(_score, search_space, algo=tpe.suggest, max_evals=10)
-  # Perform final fit and evaluation (after getting best hyperparameters)
-  loss, fitted_model, mape = _score(best_hparams, final_fit=True)
-  
-  return pd.DataFrame(
-    {
-      'Product':[PRODUCT], 
-      'SKU':[SKU], 
-      'mean_absolute_percentage_error': [mape], 
-      'mean_squared_error': [loss],
-      'best_hparams':[json.dumps(best_hparams) if loss != np.inf else "FAILED"], 
-      'model_binary': [pickle.dumps(fitted_model)]
+      'p': scope.int(hyperopt.hp.quniform('p', 0, 4, 1)),
+      'd': scope.int(hyperopt.hp.quniform('d', 0, 2, 1)),
+      'q': scope.int(hyperopt.hp.quniform('q', 0, 4, 1)) 
     }
+
+  rstate = np.random.default_rng(123) # just for reproducibility of this notebook
+
+  best_hparams = fmin(evaluate_model, search_space, algo=tpe.suggest, max_evals=10)
+
+  # Training
+  model_final = SARIMAX(
+    train_data["Demand"], 
+    exog=train_data[exo_fields], 
+    order=tuple(best_hparams.values()), 
+    seasonal_order=(0, 0, 0, 0), # assume no seasonality in our example
+    initialization_method="estimated",
+    enforce_stationarity = False,
+     enforce_invertibility = False
   )
+  fitted_model_final = model_final.fit(disp=False, method='nm')
+
+  # Validation
+  fcast = fitted_model_final.predict(
+    start=complete_ts.index.min(), 
+    end=complete_ts.index.max(), 
+    exog=validation_data[exo_fields]
+  )
+
+  return_series = complete_ts[['Product', 'SKU' , 'Demand']].assign(Demand_Fitted = fcast)
+  
+  return(return_series)
 
 # COMMAND ----------
 
-demand_pdf = demand_df.toPandas()
-unique_skus = demand_df.select("SKU").dropDuplicates().toPandas()
-n_unique_skus = len(unique_skus)
+#Test
+#import random
+#random_sku = enriched_df.select('SKU').collect()[ random.randint(0, enriched_df.count()) ][ 0 ]
+#sku_pdf = enriched_df.filter(F.col('SKU') == random_sku).toPandas()
+#build_tune_and_score_model(sku_pdf)
 
-# spark.conf.set("spark.sql.shuffle.partitions", n_unique_skus)
+# COMMAND ----------
 
 tuning_schema = StructType(
   [
     StructField('Product', StringType()),
     StructField('SKU', StringType()),
-    StructField('mean_absolute_percentage_error', FloatType()),
-    StructField('mean_squared_error', FloatType()),
-    StructField('best_hparams', StringType()),
-    StructField('model_binary', BinaryType()),
+    StructField('Demand', FloatType()),
+    StructField('Demand_Fitted', FloatType())
   ]
 )
 
@@ -233,246 +232,34 @@ tuning_schema = StructType(
 
 # COMMAND ----------
 
-# spark.conf.set("spark.sql.adaptive.coalescePartitions.enabled", "false")
-
-# COMMAND ----------
-
-tuned_df = (
+forecast_df = (
   enriched_df
   .groupBy("Product", "SKU") 
-  .applyInPandas(build_and_tune_model, schema=tuning_schema)
+  .applyInPandas(build_tune_and_score_model, schema=tuning_schema)
 )
-tuned_df = tuned_df.cache() # reuse these results later in our workflow
-print(tuned_df.rdd.getNumPartitions())
-display(tuned_df)
+display(forecast_df)
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC 
-# MAGIC ## Log and organize details at the Product level
+# MAGIC ### Save to Delta
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC 
-# MAGIC #### Tracking parameters, metrics, and model artifacts in an organized way
-# MAGIC 
-# MAGIC While we could've also returned forecast results as the output of the Pandas UDF, it's often be beneficial to break down our workflow into a few steps:
-# MAGIC 1. Model training and tuning by SKU
-# MAGIC 2. Parameter, metric, and model logging into MLflow - *organizing runs by Product* <br> (so that results and artifacts are a bit more well-organized and easier to retrieve)
-# MAGIC 3. Loading saved models from MLflow for inference (i.e. running your forecasts)
-# MAGIC 
-# MAGIC Modularizing your workflow can be extremely helpful for ensuring reproducibility and debuggability!  
-# MAGIC 
-# MAGIC #### Approach: Nested MLflow Runs
-# MAGIC <img src="https://miro.medium.com/max/1400/1*i0KMm30k8cPbu-eTVBmUZQ.gif" width=69%>  <br>  
-# MAGIC *GIF by: [Patryk Oleniuk](https://towardsdatascience.com/5-tips-for-mlflow-experiment-tracking-c70ae117b03f)*
+# Write the data 
+forecast_df.write \
+.mode("overwrite") \
+.format("delta") \
+.save('/FileStore/tables/demand_forecasting_solution_accelerator/forecast_df_delta/')
 
 # COMMAND ----------
 
-class SKUModelWrapper(mlflow.pyfunc.PythonModel):
-
-  def __init__(self, fitted_model):
-    self.fitted_model = fitted_model
-    self.last_known_exog_date = fitted_model.mlefit.model.orig_exog.index.max()
-    
-  def load_context(self, context):
-    # Optional: load artifacts if needed
-    # https://www.mlflow.org/docs/latest/python_api/mlflow.pyfunc.html#mlflow.pyfunc.PythonModel.load_context
-    pass
-
-  def predict(self, context, data: pd.DataFrame):
-    
-    exo_fields = ["covid", "christmas", "new_year"]
-    expected_fields = ["Date"] + exo_fields
-    
-    assert isinstance(data, pd.DataFrame), f"Expected pd.DataFrame, got: {type(data)}"
-    assert all(x in data.columns for x in expected_fields)
-    
-    ts = data.set_index("Date").asfreq(freq="W-MON")
-    # SARIMAX's predict() only accepts exog variables from new (out-of-sample) dates 
-    out_of_sample_exog = ts[exo_fields].loc[ts.index > self.last_known_exog_date]
-    fcast = self.fitted_model.predict(
-      start=ts.index.min(), 
-      end=ts.index.max(), 
-      exog=out_of_sample_exog
-    )
-    return fcast
+# MAGIC %sql
+# MAGIC DROP TABLE IF EXISTS demand_db.part_level_demand_with_forecasts;
+# MAGIC CREATE TABLE demand_db.part_level_demand_with_forecasts USING DELTA LOCATION '/FileStore/tables/demand_forecasting_solution_accelerator/forecast_df_delta/'
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC 
-# MAGIC #### MLflow Logging Pandas UDF
-
-# COMMAND ----------
-
-def log_to_mlflow(product_pdf: pd.DataFrame) -> pd.DataFrame:
-  """
-  In case there are many thousands of SKUs, it may help to introduce a hierarchy (nesting) of runs.
-  We can have a parent run at the Product level, then a child run per each SKU
-  """
-  PRODUCT = product_pdf["Product"].iloc[0]
-  SKU_LIST = list(product_pdf["SKU"].unique())
-  product_details = {"product": PRODUCT, "sku_list": SKU_LIST}
-  product_underscores = PRODUCT.replace(" ", "_")
-  
-  with mlflow.start_run(run_name=PRODUCT) as parent_run: # nest MLflow runs for easier organization
-    mlflow.log_param("Product", PRODUCT)
-    mlflow.log_dict(product_details, f"{product_underscores}_details.json")
-    mlflow.log_metric("max_mape", product_pdf["mean_absolute_percentage_error"].max())
-    mlflow.log_metric("mean_mape", product_pdf["mean_absolute_percentage_error"].mean())
-    
-    for idx, sku_row in product_pdf.iterrows():
-      SKU = sku_row["SKU"]
-      with mlflow.start_run(run_name=SKU, nested=True) as child_run:
-        mlflow.log_param("Product", PRODUCT)
-        mlflow.log_param("SKU", SKU)
-        mlflow.log_param("best_hparams", sku_row["best_hparams"])
-        mlflow.log_metric("mape", sku_row["mean_absolute_percentage_error"])
-        # mlflow.log_artifact(...) # you can even log artifacts e.g. plots/charts
-      
-        best_hparams = json.loads(sku_row["best_hparams"])
-        fitted_model = pickle.loads(sku_row["model_binary"])
-        sku_model = SKUModelWrapper(fitted_model)
-        # Log each SKU model
-        mlflow.pyfunc.log_model(
-          f"{PRODUCT.replace(' ', '_')}_{SKU}_SARIMAX_model", 
-          python_model=sku_model
-        )
-      
-  return pd.DataFrame({"Product": [PRODUCT], "Status": ["FINISHED"], "SKUs": [SKU_LIST]})
-
-# COMMAND ----------
-
-unique_products = tuned_df.select("Product").dropDuplicates().toPandas()
-n_unique_products = len(unique_products)
-
-# spark.conf.set("spark.sql.shuffle.partitions", n_unique_products)
-
-logging_return_schema = StructType(
-  [
-    StructField("Product", StringType()),
-    StructField("Status", StringType()),
-    StructField("SKUs", ArrayType(StringType()))
-  ]
-)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC 
-# MAGIC #### Run logging, then view training/tuning details in MLflow Experiments UI
-
-# COMMAND ----------
-
-logged_df = (
-  tuned_df
-    .groupBy("Product")
-    .applyInPandas(log_to_mlflow, schema=logging_return_schema)
-)
-print(logged_df.rdd.getNumPartitions())
-display(logged_df)
-
-# COMMAND ----------
-
-import mlflow
-
-example_sku = "CAM_0X6CLF"
-
-# Alternatively, please visit the MLflow experiment tracking UI for an example of model loading
-# https://docs.databricks.com/applications/mlflow/models.html#automatically-generated-code-snippets-in-the-mlflow-ui
-latest_search_result = mlflow.search_runs(filter_string=f"params.SKU='{example_sku}'").iloc[0]
-logged_model_metadata = json.loads(
-  latest_search_result["tags.mlflow.log-model.history"]
-)
-logged_model_metadata
-
-example_run_id = logged_model_metadata[0]["run_id"]
-example_artifact_path = logged_model_metadata[0]["artifact_path"]
-
-logged_model = f"runs:/{example_run_id}/{example_artifact_path}"
-
-# COMMAND ----------
-
-import pandas as pd
-
-example_sku_pdf = enriched_df.filter(F.col("SKU") == example_sku).toPandas()
-
-incomplete_lag_points = 10 # as we can't compute lag values on the earliest data points
-fcast_weeks = 40
-in_sample_pdf = example_sku_pdf.iloc[incomplete_lag_points:].copy()
-
-out_of_sample_pdf = pd.DataFrame()
-out_of_sample_pdf["Date"] = [in_sample_pdf["Date"].max() + pd.Timedelta(days=7*(i+1)) for i in range(fcast_weeks)]
-out_of_sample_pdf["Product"] = in_sample_pdf["Product"].iloc[0]
-out_of_sample_pdf["SKU"] = example_sku
-out_of_sample_pdf["Demand"] = np.nan
-out_of_sample_pdf = add_exo_variables(out_of_sample_pdf)
-
-example_inference_pdf = pd.concat([in_sample_pdf, out_of_sample_pdf], axis=0)
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Verify results after loading saved model from MLflow
-
-# COMMAND ----------
-
-import mlflow
-# Load model as a PyFuncModel
-# You can also load a saved model as a Spark UDF for large-scale batch inference
-# https://docs.databricks.com/applications/mlflow/model-example.html
-loaded_model = mlflow.pyfunc.load_model(logged_model)
-example_inference_pdf["prediction"] = loaded_model.predict(example_inference_pdf).values
-
-# COMMAND ----------
-
-import plotly.express as px
-    
-fig = px.line(example_inference_pdf, x="Date", y="Demand", title=f"Part-Level Forecast: SKU={example_sku}")
-fig.update_traces(name="True Demand", showlegend=True)
-
-in_sample_predictions_pdf = example_inference_pdf.loc[example_inference_pdf["Date"] <= in_sample_pdf["Date"].max()]
-out_of_sample_forecast_pdf = example_inference_pdf.loc[example_inference_pdf["Date"] > in_sample_pdf["Date"].max()]
-
-fig.add_scatter(
-  x=in_sample_predictions_pdf["Date"], y=in_sample_predictions_pdf["prediction"], 
-  mode="markers", 
-  marker=dict(
-    size=5, 
-    color="LightSeaGreen",
-    opacity=0.69
-  ), 
-  name="In-Sample Predictions"
-)
-
-fig.add_scatter(
-  x=out_of_sample_forecast_pdf["Date"], y=out_of_sample_forecast_pdf["prediction"], 
-  mode="markers", 
-  marker=dict(
-    size=5, 
-    color="Orange",
-    opacity=0.69
-  ), 
-  name="Out-of-Sample Forecast"
-)
-
-fig.update_layout(yaxis = dict(range=[4000, 18000]))
-fig.add_vline(x=in_sample_pdf["Date"].max(), line_width=3, line_dash="dash")
-fig.show()
-
-# COMMAND ----------
-
-# MAGIC %md 
-# MAGIC 
-# MAGIC ## Key Takeaways
-# MAGIC 
-# MAGIC <br>  
-# MAGIC 
-# MAGIC 1. **Pandas UDFs on Databricks** enable flexible distributed computing, while still using your favorite single-node libraries  
-# MAGIC 2. <a>**MLflow**</a> helps productionize your model development workflow to ensure traceability and reproducibility  
-# MAGIC 3. ***No MLOps without DataOps:*** <br> <a>**Delta Lake**</a> allows you to save data/forecasts to your data lake with proper data management <br> (e.g. data versioning, time travel, fine-grained updates/deletes)
-# MAGIC 
-# MAGIC <img src="https://github.com/PawaritL/data-ai-world-tour-dsml-jan-2022/blob/main/pandas-udf-workflow.png?raw=true" width=38%>
+# MAGIC %sql
+# MAGIC SELECT * FROM demand_db.part_level_demand_with_forecasts
