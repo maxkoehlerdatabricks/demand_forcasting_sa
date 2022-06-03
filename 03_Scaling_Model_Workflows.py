@@ -11,7 +11,7 @@
 # MAGIC *Prerequisite: Make sure to run the data simulation notebook 01_Simulate_Data before running this notebook.*
 # MAGIC 
 # MAGIC While the previous notebook *(02_Explore_Data)* demonstrated the benefits of Databricks' collaborative and interactive environment,  
-# MAGIC in this final part, we can apply that very same approach to train multiple models in parallel with great speed and cost-effectiveness.  
+# MAGIC in this part, we can apply that very same approach to train multiple models in parallel with great speed and cost-effectiveness.  
 # MAGIC 
 # MAGIC Key highlights for this notebook:
 # MAGIC - Pandas UDFs (user-defined functions) can take your single-node data science code, and distribute it across different keys (e.g. SKU)  

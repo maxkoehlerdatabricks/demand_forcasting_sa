@@ -593,18 +593,7 @@ spark.sql("CREATE TABLE " +  "demand_db." + table_name + " USING DELTA LOCATION 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # To Do:
-# MAGIC - Reimplement using Pandas UDF's to parallelize
-# MAGIC - Round to integers at the very end, since this is lost when correcting the series
-
-# COMMAND ----------
-
-# MAGIC %md
 # MAGIC # Some Pandas UDF Tests
-
-# COMMAND ----------
-
-
 
 # COMMAND ----------
 

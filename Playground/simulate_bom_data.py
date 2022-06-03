@@ -419,8 +419,6 @@ edges = spark.createDataFrame([
                                ('v3', 'v4', 4),
                                ('v5', 'v4', 6),
                                ('v6', 'v5', 7)
-                              
-            
                               ],
                               ['src', 'dst', 'qty'])
 
