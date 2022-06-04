@@ -16,29 +16,33 @@
 
 # Let's create an easy BoM data set
 edges = spark.createDataFrame([
-                               ('v1', 'v2', 2),
-                               ('v2', 'v3', 3),
-                               ('v3', 'v4', 4),
-                               ('v5', 'v4', 6),
-                               ('v6', 'v5', 7)
+                               ('Raw1', 'Intermediate1', 5),
+                               ('Intermediate1','Intermediate2', 3),
+                               ('Intermediate2', 'FinishedProduct', 1),
+                               ('Raw2', 'Intermediate3', 5),
+                               ('Intermediate3', 'FinishedProduct', 1),
+                               ('FinishedProduct', 'SKU', 1) 
                               ],
                               ['src', 'dst', 'qty'])
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+./Pictures/typical_bom.png
 
 # COMMAND ----------
 
-
+# MAGIC %md
+# MAGIC ![my_test_image](Pictures/typical_bom.png)
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC <img src="https://drive.google.com/file/d/1kujvsGKGb9LMpAbIcbbb08Z3FR4cni99/view?usp=sharing?raw=true" width=40%>
 
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC <img src="https://github.com/maxkoehlerdatabricks/demand_forcasting_sa/blob/max/Pictures/typical_bom.png ?raw=true" width=40%>
 
 # COMMAND ----------
 
