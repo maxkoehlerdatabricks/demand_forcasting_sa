@@ -11,6 +11,11 @@
 
 # COMMAND ----------
 
+# MAGIC %pip install --upgrade networkx
+# MAGIC %pip install --upgrade pydot
+
+# COMMAND ----------
+
 import string
 import networkx as nx
 import random
@@ -40,7 +45,7 @@ def extend_one_step(node_from_):
   for i in range(random_split_number):
     node_to = random_mat_numbers.pop()
     node_list_to_be_extended_.append(node_to)
-    res_.append((node_from_, node_to))
+    res_.append((node_to, node_from_))
   return res_, node_list_to_be_extended_
 
 # COMMAND ----------
@@ -87,12 +92,24 @@ all_skus = demand_df.select('SKU').distinct().rdd.flatMap(lambda x: x).collect()
 
 # COMMAND ----------
 
+all_skus
+
+# COMMAND ----------
+
+#########HERE SELETED ONLY FIRST SKU!!!!!!
+#new_sku = all_skus[0]
+#all_skus = []
+#all_skus.append(new_sku)
+#all_skus
+
+# COMMAND ----------
+
 # Generaze edges
 depth = 3
-new_node_list = [ ]
 edge_list = [ ]
 
-for sku in all_skus:
+for sku in all_skus: 
+  new_node_list = [ ]
   for level_ in range(1, (depth + 1)):
     new_edge_list, new_node_list = extend_one_level(new_node_list, level = level_, sku=sku)
     edge_list.extend(new_edge_list)
@@ -100,8 +117,16 @@ for sku in all_skus:
 # COMMAND ----------
 
 # Define the graph 
-g=nx.Graph()
+g=nx.DiGraph()
 g.add_edges_from(edge_list)  
+
+# COMMAND ----------
+
+nx.number_weakly_connected_components(g) 
+
+# COMMAND ----------
+
+#nx.draw(g, with_labels=True) 
 
 # COMMAND ----------
 
@@ -111,14 +136,14 @@ edge_df = edge_df.assign(qty = np.where(edge_df.target.str.len() == 10, 1, np.ra
 
 # COMMAND ----------
 
-#Create the fnal mat number to sku mapper
-final_mat_number_to_sku_mapper = edge_df[edge_df.target.str.match('SRL_.*')][["source","target"]]
+#Create the fnal mat number to sku mapper --- HERE
+final_mat_number_to_sku_mapper = edge_df[edge_df.target.str.match('SRL|LRL|CAM|SRR|LRR_.*')][["source","target"]]
 final_mat_number_to_sku_mapper = final_mat_number_to_sku_mapper.rename(columns={"source": "final_mat_number", "target": "sku"} )
 
 # COMMAND ----------
 
 # Create BoM
-bom = edge_df[~edge_df.target.str.match('SRL_.*')]
+bom = edge_df[~edge_df.target.str.match('SRL|LRL|CAM|SRR|LRR_.*')]
 bom = bom.rename(columns={"source": "material_in", "target": "material_out"} )
 
 # COMMAND ----------
@@ -153,6 +178,16 @@ final_mat_number_to_sku_mapper_df.write \
 # MAGIC %sql
 # MAGIC DROP TABLE IF EXISTS demand_db.sku_mapper;
 # MAGIC CREATE TABLE demand_db.sku_mapper USING DELTA LOCATION '/FileStore/tables/demand_forecasting_solution_accelerator/sku_mapper_df_delta/'
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select * from demand_db.sku_mapper
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC select * from demand_db.bom
 
 # COMMAND ----------
 

@@ -141,7 +141,11 @@ random_split_number = random.randint(3, 5)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Develop an algorith to simulate the BOM data
+# MAGIC # Develop an algorithm to simulate the BOM data
+
+# COMMAND ----------
+
+pip install --upgrade scipy networkx
 
 # COMMAND ----------
 
@@ -158,14 +162,6 @@ from graphframes import *
 def id_generator(size=6, chars=string.ascii_uppercase + string.digits):
     return ''.join(random.choice(chars) for _ in range(size))
 
-# Create a Pandas UDF to simulate unique SKU's, i.e. n random strings without repetition
-def id_sequence_generator(pdf):
-  random.seed(123)
-  res = set()
-  while True:
-    res.add(id_generator())
-    if len(res) >= n:
-      break
 
 # COMMAND ----------
 
@@ -184,6 +180,10 @@ random_mat_numbers = generate_random_strings(1000)
 
 # COMMAND ----------
 
+random_mat_numbers
+
+# COMMAND ----------
+
 def extend_one_step(node_from_):
   res_ = [  ]
   node_list_to_be_extended_ = [  ]
@@ -192,8 +192,16 @@ def extend_one_step(node_from_):
   for i in range(random_split_number):
     node_to = random_mat_numbers.pop()
     node_list_to_be_extended_.append(node_to)
-    res_.append((node_from_, node_to))
+    res_.append((node_to, node_from_))
   return res_, node_list_to_be_extended_
+
+# COMMAND ----------
+
+extend_one_step("NODE_FROM")
+
+# COMMAND ----------
+
+len(random_mat_numbers)
 
 # COMMAND ----------
 
@@ -217,8 +225,6 @@ def extend_one_level(node_list_to_be_extended, level, sku):
       node_list_to_be_extended_ = node_list_to_be_extended
 
     for node in node_list_to_be_extended_:
-      res_one_step = [ ]
-      node_list_to_be_extended_one_step = [ ]
       
       res_one_step, node_list_to_be_extended_one_step = extend_one_step(node)    
       res_one_level.extend(res_one_step)
@@ -278,22 +284,18 @@ new_node_list4
 # COMMAND ----------
 
 ## Loop
-depth = 5
+depth = 3
 new_node_list = [ ]
 edge_list = [ ]
+#for level_ in range(1, (depth + 1)):
 for level_ in range(1, (depth + 1)):
   new_edge_list, new_node_list = extend_one_level(new_node_list, level = level_, sku="HEAD_SKU")
   edge_list.extend(new_edge_list)
 
 # COMMAND ----------
 
-G=nx.Graph()
+G=nx.DiGraph()
 G.add_edges_from(edge_list)
-pos = hierarchy_pos(G, edge_list[0][0]  )    
-nx.draw(G, pos=pos, with_labels=False)
-
-# COMMAND ----------
-
 nx.draw(G, with_labels=True)
 
 # COMMAND ----------
@@ -333,25 +335,46 @@ type(all_skus)
 
 # COMMAND ----------
 
+len(all_skus)
+
+# COMMAND ----------
+
 ####LOOP!!!!!!!
 depth = 5
-new_node_list = [ ]
 edge_list = [ ]
 
 for sku in all_skus:
+  new_node_list = [ ]
   for level_ in range(1, (depth + 1)):
-    new_edge_list, new_node_list = extend_one_level(new_node_list, level = level_, sku=sku)
+    new_edge_list, new_node_list = extend_one_level(new_node_list, level = level_, sku=sku)  
     edge_list.extend(new_edge_list)
+
+# COMMAND ----------
+
+1000000 - len(random_mat_numbers)
+
+# COMMAND ----------
+
+
 
 # COMMAND ----------
 
 G=nx.Graph()
 G.add_edges_from(edge_list)   
-#nx.draw(G, with_labels=False)
+nx.draw(G, with_labels=False)
+
+# COMMAND ----------
+
+nx.number_connected_components(G)
 
 # COMMAND ----------
 
 edge_df = nx.to_pandas_edgelist(G)
+
+# COMMAND ----------
+
+tmp = edge_df[edge_df["target"].str.len() == 10][["target"]]
+len(tmp.drop_duplicates())
 
 # COMMAND ----------
 
@@ -360,6 +383,11 @@ edge_df = edge_df.assign(qty = np.where(edge_df.target.str.len() == 10, 1, np.ra
 # COMMAND ----------
 
 edge_df
+
+# COMMAND ----------
+
+tmp = edge_df[edge_df["target"].str.len() == 10][["target"]]
+len(tmp.drop_duplicates())
 
 # COMMAND ----------
 
@@ -384,7 +412,7 @@ vertices = ((edges.
      select(f.col('dst')).
      distinct().
      withColumnRenamed('dst','id'))
- )
+ ).distinct()
  )
 
 # COMMAND ----------
@@ -413,12 +441,25 @@ raw_df = (vertices.
 
 # COMMAND ----------
 
+import string
+import networkx as nx
+import random
+import numpy as np
+import pyspark.sql.functions as f
+from graphframes import *
+from graphframes.lib import *
+AM = AggregateMessages
+from pyspark.sql.types import StructType, StructField, StringType, ArrayType, StringType, LongType
+
+# COMMAND ----------
+
 edges = spark.createDataFrame([
-                               ('v1', 'v2', 2),
-                               ('v2', 'v3', 3),
-                               ('v3', 'v4', 4),
-                               ('v5', 'v4', 6),
-                               ('v6', 'v5', 7)
+                               ('Raw1', 'Intermediate1', 5),
+                               ('Intermediate1','Intermediate2', 3),
+                               ('Intermediate2', 'FinishedProduct', 1),
+                               ('Raw2', 'Intermediate3', 5),
+                               ('Intermediate3', 'FinishedProduct', 1),
+                               ('FinishedProduct', 'SKU', 2) 
                               ],
                               ['src', 'dst', 'qty'])
 
@@ -506,7 +547,7 @@ g_for_loop = GraphFrame(updated_vertices, updated_edges)
 
 # COMMAND ----------
 
-# initiate vertices_with_agg_essages
+# initiate vertices_with_agg_messages
 emptyRDD = spark.sparkContext.emptyRDD()
 from pyspark.sql.types import StructType, StructField, StringType, ArrayType, StringType, LongType
 schema = StructType([
@@ -514,9 +555,9 @@ schema = StructType([
   StructField('aggregrated_parents_from_parent', ArrayType(StringType(), True)),
   StructField('iteration', LongType(), True)
   ])
-vertices_with_agg_essages = spark.createDataFrame(emptyRDD,schema)
+vertices_with_agg_messages = spark.createDataFrame(emptyRDD,schema)
 
-vertices_with_agg_essages.show()
+vertices_with_agg_messages.show()
 
 # COMMAND ----------
 
@@ -535,9 +576,9 @@ if (iteration > 1):
   agg = agg.withColumn("aggregrated_parents_from_parent",f.flatten(f.col("aggregrated_parents_from_parent")))
 
   
-vertices_with_agg_essages = vertices_with_agg_essages.union(agg)
+vertices_with_agg_messages = vertices_with_agg_messages.union(agg)
 
-vertices_with_agg_essages.show()
+vertices_with_agg_messages.show()
 
 # COMMAND ----------
 
@@ -584,9 +625,9 @@ agg = agg.withColumn("iteration", f.lit(iteration))
 if (iteration > 1):
   agg = agg.withColumn("aggregrated_parents_from_parent",f.flatten(f.col("aggregrated_parents_from_parent")))
 
-vertices_with_agg_essages = vertices_with_agg_essages.union(agg)
+vertices_with_agg_messages = vertices_with_agg_messages.union(agg)
 
-vertices_with_agg_essages.show()
+vertices_with_agg_messages.show()
 
 # COMMAND ----------
 
@@ -647,9 +688,9 @@ agg = agg.withColumn("iteration", f.lit(iteration))
 if (iteration > 1):
   agg = agg.withColumn("aggregrated_parents_from_parent",f.flatten(f.col("aggregrated_parents_from_parent")))
 
-vertices_with_agg_essages = vertices_with_agg_essages.union(agg)
+vertices_with_agg_messages = vertices_with_agg_messages.union(agg)
 
-vertices_with_agg_essages.show()
+vertices_with_agg_messages.show()
 
 # COMMAND ----------
 
@@ -679,22 +720,22 @@ updated_edges.show()
 #Result
 
 #Subset to final iteration per id
-helper = (vertices_with_agg_essages.
+helper = (vertices_with_agg_messages.
   groupBy("id").
   agg(f.max("iteration").alias("iteration"))
        )
 
-vertices_with_agg_essages = helper.join(vertices_with_agg_essages, ["id", "iteration"],  how="inner")
+vertices_with_agg_messages = helper.join(vertices_with_agg_messages, ["id", "iteration"],  how="inner")
 
 # Subset to furthermost children
 in_degress_df = g.inDegrees
 raw_df = (vertices.
  join( in_degress_df, ["id"], how='left_anti' )
 )
-vertices_with_agg_essages = raw_df.join(vertices_with_agg_essages, ["id"], how="inner").select(f.col("id"),f.col("aggregrated_parents_from_parent"))
-vertices_with_agg_essages = vertices_with_agg_essages.withColumn("SKU", f.col("aggregrated_parents_from_parent").getItem(0)).select(f.col("id"), f.col("SKU"))
+vertices_with_agg_messages = raw_df.join(vertices_with_agg_messages, ["id"], how="inner").select(f.col("id"),f.col("aggregrated_parents_from_parent"))
+vertices_with_agg_messages = vertices_with_agg_messages.withColumn("SKU", f.col("aggregrated_parents_from_parent").getItem(0)).select(f.col("id"), f.col("SKU"))
 
-vertices_with_agg_essages.show()
+vertices_with_agg_messages.show()
 
 # COMMAND ----------
 
@@ -713,7 +754,7 @@ def get_sku_for_raw(gx):
   # Inititate the graph
   g_for_loop = GraphFrame(updated_vertices, updated_edges)
   
-  # Initiate vertices_with_agg_essages
+  # Initiate vertices_with_agg_messages
   emptyRDD = spark.sparkContext.emptyRDD()
   from pyspark.sql.types import StructType, StructField, StringType, ArrayType, StringType, LongType
   schema = StructType([
@@ -721,7 +762,7 @@ def get_sku_for_raw(gx):
     StructField('aggregrated_parents_from_parent', ArrayType(StringType(), True)),
     StructField('iteration', LongType(), True)
   ])
-  vertices_with_agg_essages = spark.createDataFrame(emptyRDD,schema)
+  vertices_with_agg_messages = spark.createDataFrame(emptyRDD,schema)
   
   
   while(True):
@@ -743,7 +784,7 @@ def get_sku_for_raw(gx):
       agg = agg.withColumn("aggregrated_parents_from_parent",f.flatten(f.col("aggregrated_parents_from_parent")))
 
 
-    vertices_with_agg_essages = vertices_with_agg_essages.union(agg)
+    vertices_with_agg_messages = vertices_with_agg_messages.union(agg)
     
     #Increase iteration
     iteration+=1
@@ -767,26 +808,26 @@ def get_sku_for_raw(gx):
     ####THE WHILE LOOP ENDS HERE#######################################################################
     
   # Subset to final iteration per id
-  helper = (vertices_with_agg_essages.
+  helper = (vertices_with_agg_messages.
     groupBy("id").
     agg(f.max("iteration").alias("iteration")))
 
-  vertices_with_agg_essages = helper.join(vertices_with_agg_essages, ["id", "iteration"],  how="inner")
+  vertices_with_agg_messages = helper.join(vertices_with_agg_messages, ["id", "iteration"],  how="inner")
 
   # Subset to furthermost children
   in_degress_df = g.inDegrees
   raw_df = (vertices.
    join( in_degress_df, ["id"], how='left_anti'))
-  vertices_with_agg_essages = (raw_df.
-                               join(vertices_with_agg_essages, ["id"],how="inner").select(f.col("id"),f.col("aggregrated_parents_from_parent"))
+  vertices_with_agg_messages = (raw_df.
+                               join(vertices_with_agg_messages, ["id"],how="inner").select(f.col("id"),f.col("aggregrated_parents_from_parent"))
                               )
-  vertices_with_agg_essages = (vertices_with_agg_essages.
+  vertices_with_agg_messages = (vertices_with_agg_messages.
                                  withColumn("SKU", f.col("aggregrated_parents_from_parent").getItem(0)).
                                  select(f.col("id"), f.col("SKU"))
                               )
     
     
-  return(vertices_with_agg_essages)
+  return(vertices_with_agg_messages)
 
 # COMMAND ----------
 
@@ -812,7 +853,7 @@ iteration = 1
 
 # COMMAND ----------
 
-# initiate vertices_with_agg_essages
+# initiate vertices_with_agg_messages
 emptyRDD = spark.sparkContext.emptyRDD()
 from pyspark.sql.types import StructType, StructField, StringType, LongType
 schema = StructType([
@@ -820,11 +861,11 @@ schema = StructType([
   StructField('qty', LongType(), True),
   StructField('iteration', LongType(), True)
   ])
-vertices_with_agg_essages = spark.createDataFrame(emptyRDD,schema)
+vertices_with_agg_messages = spark.createDataFrame(emptyRDD,schema)
 
 # COMMAND ----------
 
-vertices_with_agg_essages.show()
+vertices_with_agg_messages.show()
 
 # COMMAND ----------
 
@@ -842,7 +883,7 @@ agg = g_for_loop.aggregateMessages(
  sendToDst=None
 )
 
-agg = agg.withColumn("iteration", lit(iteration))
+agg = agg.withColumn("iteration", f.lit(iteration))
 
 # COMMAND ----------
 
@@ -851,20 +892,38 @@ agg.show()
 # COMMAND ----------
 
 #Update agg
-vertices_with_agg_essages = vertices_with_agg_essages.union(agg)
+vertices_with_agg_messages = vertices_with_agg_messages.union(agg)
 
 
 # COMMAND ----------
 
-vertices_with_agg_essages.show()
+vertices_with_agg_messages.show()
 
 # COMMAND ----------
 
-#Now joiun this to the edges by dst
 edges_old = g_for_loop.edges
-edges_update = (edges_old.
-                  join(agg, edges_old['dst'] == agg['id'], "inner").
-                  withColumn("qty", F.col("qty")*F.col("qty_from_parent")).
+edges_old.show()
+
+# COMMAND ----------
+
+agg.show()
+
+# COMMAND ----------
+
+helper = (edges_old.
+ join(agg, edges_old['dst'] == agg['id'], "left").
+ filter(f.col("id").isNull()).
+ select(f.col("src")).
+ withColumnRenamed("src","to_multiply_look_up")
+)
+
+# COMMAND ----------
+
+edges_old = g_for_loop.edges
+edges_update = edges_old.join(agg, edges_old['dst'] == agg['id'], "inner")
+edges_update = (edges_update.
+                  join(helper, edges_update["dst"] == helper["to_multiply_look_up"], "left").
+                  withColumn("qty", f.when(f.col("to_multiply_look_up").isNull(), f.col("qty")  ).otherwise(f.col("qty")*f.col("qty_from_parent"))).
                   select(f.col('src'),f.col('dst'),f.col('qty'))
                )
 
@@ -897,12 +956,12 @@ agg = g_for_loop.aggregateMessages(
  sendToDst=None
 )
 
-agg = agg.withColumn("iteration", lit(iteration))
+agg = agg.withColumn("iteration", f.lit(iteration))
 
 #Update agg
-vertices_with_agg_essages = vertices_with_agg_essages.union(agg)
+vertices_with_agg_messages = vertices_with_agg_messages.union(agg)
 
-display(vertices_with_agg_essages)
+display(vertices_with_agg_messages)
 
 # COMMAND ----------
 
@@ -923,7 +982,7 @@ from pyspark.sql.types import StructType, StructField, StringType, LongType
 
 # COMMAND ----------
 
-def find_furthermost_children_with_prod_of_qty(gx):
+def get_quantity_of_raw_needed_for_its_fin(gx):
   
   
   # Initialization:
@@ -932,14 +991,14 @@ def find_furthermost_children_with_prod_of_qty(gx):
   # Initiate the graph to be updated by each loop iteration
   g_for_loop = gx
   
-  # initiate vertices_with_agg_essages
+  # initiate vertices_with_agg_messages
   emptyRDD = spark.sparkContext.emptyRDD()
   schema = StructType([
   StructField('id', StringType(), True),
   StructField('qty', LongType(), True),
   StructField('iteration', LongType(), True)
   ])
-  vertices_with_agg_essages = spark.createDataFrame(emptyRDD,schema)
+  vertices_with_agg_messages = spark.createDataFrame(emptyRDD,schema)
   
   #Intita the iteration integer
   iteration = 1
@@ -955,18 +1014,26 @@ def find_furthermost_children_with_prod_of_qty(gx):
     )
     
     #Update aggregation information table
-    agg = agg.withColumn("iteration", lit(iteration))
-    vertices_with_agg_essages = vertices_with_agg_essages.union(agg)
+    agg = agg.withColumn("iteration", f.lit(iteration))
+    vertices_with_agg_messages = vertices_with_agg_messages.union(agg)
     
   
     #Update edges accordingly
     edges_old = g_for_loop.edges
-    edges_update = (edges_old.
-                    join(agg, edges_old['dst'] == agg['id'], "inner").
-                    withColumn("qty", F.col("qty")*F.col("qty_from_parent")).
-                    select(f.col('src'),f.col('dst'),f.col('qty'))
-                   )
     
+    helper = (edges_old.
+       join(agg, edges_old['dst'] == agg['id'], "left").
+       filter(f.col("id").isNull()).
+       select(f.col("src")).
+       withColumnRenamed("src","to_multiply_look_up")
+       )
+    
+    edges_update = edges_old.join(agg, edges_old['dst'] == agg['id'], "inner")
+    edges_update = (edges_update.
+           join(helper, edges_update["dst"] == helper["to_multiply_look_up"], "left").
+                withColumn("qty", f.when(f.col("to_multiply_look_up").isNull(), f.col("qty")  ).otherwise(f.col("qty")*f.col("qty_from_parent"))).
+                select(f.col('src'),f.col('dst'),f.col('qty'))
+               )
     
     #Formulate Break condition
     if (edges_update.count()==0):
@@ -980,27 +1047,28 @@ def find_furthermost_children_with_prod_of_qty(gx):
   
   
   #Subset to final iteration per id
-  helper = (vertices_with_agg_essages.
+  helper = (vertices_with_agg_messages.
     groupBy("id").
     agg(f.max("iteration").alias("iteration"))
          )
 
-  vertices_with_agg_essages = helper.join(vertices_with_agg_essages, ["id", "iteration"],  how="inner")
+  vertices_with_agg_messages = helper.join(vertices_with_agg_messages, ["id", "iteration"],  how="inner")
 
   # Subset to furthermost children
   in_degress_df = g.inDegrees
   raw_df = (vertices.
    join( in_degress_df, ["id"], how='left_anti' )
   )
-  vertices_with_agg_essages = raw_df.join(vertices_with_agg_essages, ["id"], how="inner").select(f.col("id"),f.col("qty"))
+  vertices_with_agg_messages = raw_df.join(vertices_with_agg_messages, ["id"], how="inner").select(f.col("id"),f.col("qty"))
     
   #Return
-  return(vertices_with_agg_essages)
+  return(vertices_with_agg_messages)
 
 # COMMAND ----------
 
-res = find_furthermost_children_with_prod_of_qty(g)
-
-# COMMAND ----------
-
+res = get_quantity_of_raw_needed_for_its_fin(g)
 display(res)
+
+# COMMAND ----------
+
+
