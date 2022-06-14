@@ -5,11 +5,6 @@
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC # Packages and Parameters
-
-# COMMAND ----------
-
 import os
 import datetime
 from random import random
@@ -42,7 +37,7 @@ covid_breakpoint = datetime.date(year=2020, month=3, day=1)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Read in data
+# MAGIC ## Read in data
 
 # COMMAND ----------
 
@@ -106,7 +101,7 @@ display(pdf)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Data Preparation
+# MAGIC ## Data Preparation
 
 # COMMAND ----------
 
@@ -159,7 +154,7 @@ score_exo = exo_df.iloc[~np.array(is_history)]
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Simple Exponential Smoothing
+# MAGIC ## Simple Exponential Smoothing
 
 # COMMAND ----------
 
@@ -187,7 +182,7 @@ plt.title("Simple Exponential Smoothing")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Holt’s Method
+# MAGIC ## Holt’s Method
 
 # COMMAND ----------
 
@@ -222,7 +217,7 @@ plt.title("Holt's Method")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Holt’s Winters Seasonal
+# MAGIC ## Holt’s Winters Seasonal
 
 # COMMAND ----------
 
@@ -297,7 +292,7 @@ plt.title("Holts Winters Seasonal Method")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # SARIMAX
+# MAGIC ## SARIMAX
 
 # COMMAND ----------
 
@@ -330,7 +325,7 @@ plt.title("SARIMAX")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Taking advantage of MLFlow and Hyperopt to find optimal parameters in the SARIMAX model
+# MAGIC ## Taking advantage of MLFlow and Hyperopt to find optimal parameters in the SARIMAX model
 
 # COMMAND ----------
 

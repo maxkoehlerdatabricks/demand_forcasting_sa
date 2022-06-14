@@ -1,6 +1,19 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # Map the forecasted demand to raw materials
+# MAGIC Traversing the manufacturing value chain backwards to find out how much raw material is needed to produce the forecasted number of products
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC *Prerequisite: Make sure to run 01_Simulate_Data and 03_Scaling_Model_Workflows before running this notebook.*
+# MAGIC 
+# MAGIC While the previous notebook *(03_Scaling_Model_Workflows)* demonstrated the benefits of one of the Databricks' approach to train multiple models in parallel with great speed and cost-effectiveness,
+# MAGIC in this part we show how to use Databricks' graph functionality to traverse the manufacturing value chain to find out how much raw material is needed for production.
+# MAGIC 
+# MAGIC Key highlights for this notebook:
+# MAGIC - Solve large scale graph problems by using GraphX as a distributed graph processing framework on top of Apache Spark
+# MAGIC - Leverage the full support for property graphs to incorporate business knowlegde and the traverse the manufacturing value chain 
 
 # COMMAND ----------
 
@@ -425,4 +438,31 @@ display(demand_raw_df)
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ### Save to delta
 
+# COMMAND ----------
+
+# Write the data 
+demand_raw_df.write \
+.mode("overwrite") \
+.format("delta") \
+.save('/FileStore/tables/demand_forecasting_solution_accelerator/forecast_raw/')
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC CREATE DATABASE IF NOT EXISTS demand_db;
+# MAGIC DROP TABLE IF EXISTS demand_db.forecast_raw;
+# MAGIC CREATE TABLE demand_db.forecast_raw USING DELTA LOCATION '/FileStore/tables/demand_forecasting_solution_accelerator/forecast_raw/'
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM demand_db.forecast_raw;
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Analyze the raw material demand
+# MAGIC You can analyze the SKU demand using Databricks' simple dashboard functionality. See   [here](https://e2-demo-field-eng.cloud.databricks.com/sql/dashboards/fa660958-35a9-4710-a393-b050dd59275a-demand-analysis?edit&o=1444828305810485&p_w27bd4a0b-88a2-422a-bda5-9363bb3e7921_sku_parameter=%5B%22LRR_0X6CLF%22%5D&p_w6280d39b-f9b1-4644-b80c-caf98965b76e_sku_parameter=%5B%22LRR_0X6CLF%22%2C%22SRL_Z61857%22%5D).
