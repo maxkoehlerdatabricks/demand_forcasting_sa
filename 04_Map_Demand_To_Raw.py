@@ -1,11 +1,15 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/typical_bom2.png" width="1500"/>
+# MAGIC # Map the forecasted demand to raw materials
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Map the forecasted demand to raw materials
+# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/operations_process.png" width="1500"/>
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC Once the demand is forecasted, manufacturers need to purchase raw material and initiate production planning. This notebook shows how to translate future demand into raw materials. More precisely, we will do a Bill of Material (BoM) resolution to map the forecasted demand for each SKU to the appropriate demand of raw materials that are needed to produce the finished good that is mapped to the SKU.
 
 # COMMAND ----------
@@ -46,15 +50,15 @@ edges = spark.createDataFrame([
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC The above data frame represents a very simple BoM. It represents a building plan for a finished product. It consists of several intermediate products and raw materials. Quantities are also given. In reality a BoM consists of many more assembly steps and with an unknown number of assembly steps. Needless to say that this also means that there are many more raw materials and intermediate products. In this picture, we assume that the final product is mapped to one SKU. This information would not be part of a typical BoM. Note that a BoM is an information that is relevant mainly in production planning systems. An SKU would be something that is rather part of a logistics system. We assume that a look up table exists that maps each finished product to its SKU. The above BoM is then a result of artificially adding another assembly step with quantity 1. We now translate the manufacturing terms in terms that are used in graph theory. Each assembly step is an edge. The raw materials, intermediate products, the finished product and the SKU are vertices.
+# MAGIC The above data frame represents a very simple BoM. It represents a building plan for a finished product. It consists of several intermediate products and raw materials. Quantities are also given. In reality a BoM consists of many more and previously unknown number of steps. Needless to say that this also means that there are many more raw materials and intermediate products. In this picture, we assume that the final product is mapped to one SKU. This information would not be part of a typical BoM. Note that a BoM is an information that is relevant mainly in production planning systems, whereas an SKU would be something that is rather part of a logistics system. We assume that a look up table exists that maps each finished product to its SKU. The above BoM is then a result of artificially adding another step with quantity 1. We now translate the manufacturing terms in terms that are used in graph theory. Each step is an edge. The raw materials, intermediate products, the finished product and the SKU are vertices.
 
 # COMMAND ----------
 
 # MAGIC %md
 # MAGIC ### Prepration
 # MAGIC The goal is to map the forecasted demand values for each SKU to quantities of the raw materials (the input of the production line) that are needed to produce the associated finished product (the output of the production line). To this end, we need a table which lists for each SKU demand for a time point all raw materials that are needed for production (ideally also at that time point to reduce warehouse costs). We do this in two steps:
-# MAGIC Derive the SKU for each raw material.
-# MAGIC Derive the product of all quantities of all succeeding assembly steps (=edges) from a raw material point of view.
+# MAGIC - Step 1: Derive the SKU for each raw material.
+# MAGIC - Step 2: Derive the product of all quantities of all succeeding assembly steps (=edges) from a raw material point of view.
 
 # COMMAND ----------
 
@@ -108,9 +112,11 @@ def get_sku_for_raw(gx):
   
   # Inititate the edges
   updated_edges = gx.edges.select(f.col("src"),f.col("dst")).withColumn("aggregrated_parents", f.col("dst"))
+  updated_edges = updated_edges.localCheckpoint()
  
   # Inititate the vertices
   updated_vertices = gx.vertices
+  updated_vertices = updated_vertices.localCheckpoint()
   
   # Inititate the graph
   g_for_loop = GraphFrame(updated_vertices, updated_edges)
@@ -162,6 +168,10 @@ def get_sku_for_raw(gx):
     if (updated_edges.count() == 0):
       break
     
+    # Checkpoint
+    updated_vertices = updated_vertices.localCheckpoint()
+    updated_edges = updated_edges.localCheckpoint()
+    
     #Update the graph
     g_for_loop = GraphFrame(updated_vertices, updated_edges)
     
@@ -211,6 +221,11 @@ def get_quantity_of_raw_needed_for_its_fin(gx):
   msgToSrc = AM.edge["qty"]
   
   # Initiate the graph to be updated by each loop iteration
+  vertices = gx.vertices 
+  edges = gx.edges
+  vertices = vertices.localCheckpoint()
+  edges = edges.localCheckpoint()
+  
   g_for_loop = gx
   
   # initiate vertices_with_agg_messages
@@ -263,6 +278,9 @@ def get_quantity_of_raw_needed_for_its_fin(gx):
       
     #Update iteration
     iteration+=1
+    
+    #Checkpoint
+    edges_update = edges_update.localCheckpoint()
     
     #Update Graph
     g_for_loop = GraphFrame(vertices, edges_update)
@@ -377,8 +395,33 @@ display(res2)
 
 # COMMAND ----------
 
-aggregated_bom = res1.join(res2, ["id"], how="inner").withColumnRenamed("id","RAW").orderBy(f.col("SKU"),f.col("RAW"))
+aggregated_bom = (res1.
+                    join(res2, ["id"], how="inner").
+                    withColumnRenamed("id","RAW").
+                    withColumnRenamed("qty","QTY_RAW").
+                    orderBy(f.col("SKU"),f.col("RAW"))
+                 )
 display(aggregated_bom)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ### Derive the demand for raw material
+
+# COMMAND ----------
+
+demand_df = spark.read.table("demand_db.part_level_demand")
+
+# COMMAND ----------
+
+demand_raw_df = (demand_df.
+      join(aggregated_bom, ["SKU"], how="inner").
+      select("Product","SKU","RAW", "Date","Demand", "QTY_RAW").
+      withColumn("Demand_Raw", f.col("QTY_RAW")*f.col("Demand")).
+      withColumnRenamed("Demand","Demand_SKU").
+      orderBy(f.col("SKU"),f.col("RAW"), f.col("Date"))
+                )
+display(demand_raw_df)
 
 # COMMAND ----------
 
