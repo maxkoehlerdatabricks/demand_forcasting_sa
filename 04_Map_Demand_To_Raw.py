@@ -1,7 +1,7 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # Map the forecasted demand to raw materials
-# MAGIC Once the demand is forecasted, manufacturers need to purchase raw material and initiate production planning. This notebook shows how to do a Bill of Material (BoM) resolution to map the forecasted demand of the raw materials to the appropriate demand of raw materials.
+# MAGIC Once the demand is forecasted, manufacturers need to purchase raw material and initiate production planning. This notebook shows how to translate future demand into raw materials. More precisely, we will do a Bill of Material (BoM) resolution to map the forecasted demand for each SKU to the appropriate demand of raw materials that are needed to produce the finished good that is mapped to the SKU.
 
 # COMMAND ----------
 
@@ -36,7 +36,7 @@ edges = spark.createDataFrame([
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ![typical_bom](/Workspace/Repos/max.kohler@databricks.com/demand_forcasting_sa/Pictures/typical_bom.png)
+# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/typical_bom.png" width="1000"/>
 
 # COMMAND ----------
 
