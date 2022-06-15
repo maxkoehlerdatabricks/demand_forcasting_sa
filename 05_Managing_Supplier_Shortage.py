@@ -24,7 +24,7 @@
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Get raw material shortages
+# MAGIC ## Get all reported raw material shortages
 
 # COMMAND ----------
 
@@ -37,4 +37,91 @@
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC ## Get the affected SKU's
+# MAGIC Get the affected SKU's and derive ehat quantity can actually be shipped to the customer
 
+# COMMAND ----------
+
+demand_raw_df = spark.read.table("demand_db.forecast_raw")
+material_shortage_df = spark.read.table("demand_db.material_shortage")
+
+# COMMAND ----------
+
+affected_skus_df = (material_shortage_df.
+                    join(demand_raw_df, ["RAW","Date"], how="inner").
+                    withColumn("fraction_raw", f.col("available_demand") / f.col("Demand_Raw"))
+                   )
+                    
+min_fraction =  (affected_skus_df.
+                    groupBy("SKU").
+                    agg(f.min(f.col("fraction_raw")).alias("min_fraction_raw"))
+                   )
+
+affected_skus_df = (
+                  affected_skus_df.
+                  join(min_fraction, ["SKU"]).
+                  withColumnRenamed("available_demand", "Adjusted_Demand_Raw").
+                  withColumn("Adjusted_Demand_SKU", f.floor(f.col("Demand_SKU") * f.col("min_fraction_raw")) ).
+                  select(f.col("RAW"), f.col("Date"), f.col("SKU").alias("Affetced_SKU"), f.col("Product").alias("Affected_Product"), f.col("Demand_RAW"), f.col("Adjusted_Demand_Raw"), f.col("Demand_SKU"), f.col("Adjusted_Demand_SKU"), f.col("min_fraction_raw").alias("Available_Fraction_For_SKU"))
+)
+
+display(affected_skus_df)
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Get the amount of overplanning other raw materials
+# MAGIC If one raw material has ahsortage, other raw materials in the specific SKU are overplanned and orders can be adjusted to reduce storage costs
+
+# COMMAND ----------
+
+raw_overplanning_df = (affected_skus_df.
+                        select(f.col("Affetced_SKU").alias("SKU"), f.col("Date"), f.col("Available_Fraction_For_SKU")).
+                        join(demand_raw_df, ["SKU", "Date"], how="inner").
+                        withColumn("Demand_Raw_Adjusted", f.floor(f.col("Demand_RAW") * f.col("Available_Fraction_For_SKU"))).
+                        select(f.col("RAW"), f.col("Date"), f.col("Demand_Raw"), f.col("Demand_Raw_Adjusted"))
+                      )
+
+
+display(raw_overplanning_df)
+
+# COMMAND ----------
+
+# MAGIC %md 
+# MAGIC ## Save to Delta
+
+# COMMAND ----------
+
+# Write the data 
+affected_skus_df.write \
+.mode("overwrite") \
+.format("delta") \
+.save('/FileStore/tables/demand_forecasting_solution_accelerator/material_shortage_sku/')
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC CREATE DATABASE IF NOT EXISTS demand_db;
+# MAGIC DROP TABLE IF EXISTS demand_db.material_shortage_sku;
+# MAGIC CREATE TABLE demand_db.material_shortage_sku USING DELTA LOCATION '/FileStore/tables/demand_forecasting_solution_accelerator/material_shortage_sku/'
+
+# COMMAND ----------
+
+# Write the data 
+raw_overplanning_df.write \
+.mode("overwrite") \
+.format("delta") \
+.save('/FileStore/tables/demand_forecasting_solution_accelerator/material_shortage_raw/')
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC DROP TABLE IF EXISTS demand_db.material_shortage_raw;
+# MAGIC CREATE TABLE demand_db.material_shortage_raw USING DELTA LOCATION '/FileStore/tables/demand_forecasting_solution_accelerator/material_shortage_raw/'
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC ## Analyze the adjusted raw material demand
+# MAGIC You can analyze the adjusted raw material demand using Databricks' simple dashboard functionality. See   [here](https://e2-demo-field-eng.cloud.databricks.com/sql/dashboards/fa660958-35a9-4710-a393-b050dd59275a-demand-analysis?edit&o=1444828305810485&p_w27bd4a0b-88a2-422a-bda5-9363bb3e7921_sku_parameter=%5B%22LRR_0X6CLF%22%5D&p_w6280d39b-f9b1-4644-b80c-caf98965b76e_sku_parameter=%5B%22LRR_0X6CLF%22%2C%22SRL_Z61857%22%5D).
