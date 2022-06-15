@@ -23,27 +23,17 @@
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+# MAGIC %md
+# MAGIC # Get raw material shortages
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+# MAGIC %run ./Helper/Simulate_Material_Shortages
 
 # COMMAND ----------
 
-
-
-# COMMAND ----------
-
-
+# MAGIC %sql
+# MAGIC select * from demand_db.material_shortage
 
 # COMMAND ----------
 
