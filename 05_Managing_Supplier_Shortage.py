@@ -1,7 +1,7 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # Manage a supplier shortage
-# MAGIC After checking with the supplier how much raw material can actually be delivered we can now traversing the manufacturing value chain forwards to find out how much SKU's can actually be shipped to the customer. If one raw material is the bottleneck for producing a specific SKU, orders of the other raw materials for that SKU can be adjusted accordingly to save storage costs.
+# MAGIC # Manage a material shortage
+# MAGIC After checking with the supplier how much raw material can actually be delivered we can now traverse the manufacturing value chain forwards to find out how much SKU's can actually be shipped to the customer. If one raw material is the bottleneck for producing a specific SKU, orders of the other raw materials for that SKU can be adjusted accordingly to save storage costs.
 
 # COMMAND ----------
 
@@ -39,7 +39,7 @@
 
 # MAGIC %md
 # MAGIC ## Get the affected SKU's
-# MAGIC Get the affected SKU's and derive ehat quantity can actually be shipped to the customer
+# MAGIC Get the affected SKU's and derive the quantity that can actually be shipped to the customer
 
 # COMMAND ----------
 
@@ -72,7 +72,7 @@ display(affected_skus_df)
 
 # MAGIC %md
 # MAGIC ## Get the amount of overplanning other raw materials
-# MAGIC If one raw material has ahsortage, other raw materials in the specific SKU are overplanned and orders can be adjusted to reduce storage costs
+# MAGIC If one raw material has a shortage, other raw materials in the specific SKU are overplanned and orders can be adjusted to reduce storage costs
 
 # COMMAND ----------
 
@@ -119,6 +119,16 @@ raw_overplanning_df.write \
 # MAGIC %sql
 # MAGIC DROP TABLE IF EXISTS demand_db.material_shortage_raw;
 # MAGIC CREATE TABLE demand_db.material_shortage_raw USING DELTA LOCATION '/FileStore/tables/demand_forecasting_solution_accelerator/material_shortage_raw/'
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM demand_db.material_shortage_sku;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC SELECT * FROM demand_db.material_shortage_raw;
 
 # COMMAND ----------
 

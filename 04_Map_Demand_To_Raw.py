@@ -354,6 +354,10 @@ display(demand_df)
 
 # COMMAND ----------
 
+display(bom)
+
+# COMMAND ----------
+
 display(sku_mapper) 
 
 # COMMAND ----------
