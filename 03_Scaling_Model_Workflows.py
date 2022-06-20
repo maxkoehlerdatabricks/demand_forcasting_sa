@@ -201,9 +201,9 @@ def build_tune_and_score_model(sku_pdf: pd.DataFrame) -> pd.DataFrame:
     exog=validation_data[exo_fields]
   )
 
-  return_series = complete_ts[['Product', 'SKU' , 'Demand']].assign(Demand_Fitted = fcast)
+  forecast_series = complete_ts[['Product', 'SKU' , 'Demand']].assign(Demand_Fitted = fcast)
   
-  return(return_series)
+  return forecast_series
 
 # COMMAND ----------
 
