@@ -1,4 +1,46 @@
 # Databricks notebook source
+dbutils.widgets.dropdown("reset_all_data", "false", ["true", "false"], "Reset all data")
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # A Manufacturing Solution for Demand Forecasting
+# MAGIC ## Use Case Overview
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Demand_Forecasting_Intro.jpg" width=400%>
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Fine_Grained_Demand_Forecasting_Intro.jpg" width=100%>
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Derive_Raw_Material_Demand_Intro.jpg" width=400%>
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Manage_Material_Shortages_Intro.jpg" width=400%>
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
+
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC # Data Exploration
 # MAGIC This notebook explores the analysis data and trains first models on them. Make sure to run the data simulation notebook 01_Simulate_Data before running this notebook.
