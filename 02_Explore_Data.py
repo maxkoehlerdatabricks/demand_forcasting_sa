@@ -10,26 +10,22 @@ dbutils.widgets.dropdown("reset_all_data", "false", ["true", "false"], "Reset al
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Demand_Forecasting_Intro.jpg" width=400%>
+# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Demand_Forecasting_Intro.jpg" width=80%>
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Fine_Grained_Demand_Forecasting_Intro.jpg" width=100%>
+# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Fine_Grained_Demand_Forecasting_Intro.jpg" width=80%>
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Derive_Raw_Material_Demand_Intro.jpg" width=400%>
+# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Derive_Raw_Material_Demand_Intro.jpg" width=80%>
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Manage_Material_Shortages_Intro.jpg" width=400%>
-
-# COMMAND ----------
-
-
+# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Manage_Material_Shortages_Intro.jpg" width=80%>
 
 # COMMAND ----------
 
