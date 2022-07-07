@@ -1,4 +1,26 @@
 # Databricks notebook source
+dbutils.widgets.dropdown('reset_all_data', 'false', ['true', 'false'], 'Reset all data')
+dbutils.widgets.text('dbName',  'demand_db' , 'Database Name')
+dbutils.widgets.text('cloud_storage_path',  '/FileStore/tables/demand_forecasting_solution_accelerator/', 'Storage Path')
+
+# COMMAND ----------
+
+print("Starting ./_resources/01-data-generator")
+
+# COMMAND ----------
+
+cloud_storage_path = dbutils.widgets.get('cloud_storage_path')
+dbName = dbutils.widgets.get('dbName')
+reset_all_data = dbutils.widgets.get('reset_all_data') == 'true'
+
+# COMMAND ----------
+
+print(cloud_storage_path)
+print(dbName)
+print(reset_all_data)
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC # Hierarchical Time Series Generator
 # MAGIC This notebook-section simulates hierarchical time series data
@@ -20,6 +42,7 @@ import datetime
 from dateutil.relativedelta import relativedelta
 from dateutil import rrule
 
+import os
 import string
 import random
 
@@ -317,12 +340,7 @@ display(demand_df.join(demand_df.sample(False, 1 / demand_df.count(), seed=0).li
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC ## Register table in database
-
-# COMMAND ----------
-
-demand_df.count()
+demand_df_delta_path = os.path.join(cloud_storage_path, 'demand_df_delta')
 
 # COMMAND ----------
 
@@ -330,26 +348,20 @@ demand_df.count()
 demand_df.write \
 .mode("overwrite") \
 .format("delta") \
-.save('/FileStore/tables/demand_forecasting_solution_accelerator/demand_df_delta/')
+.save(demand_df_delta_path)
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC CREATE DATABASE IF NOT EXISTS demand_db;
-# MAGIC DROP TABLE IF EXISTS demand_db.part_level_demand;
-# MAGIC CREATE TABLE demand_db.part_level_demand USING DELTA LOCATION '/FileStore/tables/demand_forecasting_solution_accelerator/demand_df_delta/'
+spark.sql(f"DROP TABLE IF EXISTS {dbName}.part_level_demand")
+spark.sql(f"CREATE TABLE {dbName}.part_level_demand USING DELTA LOCATION '{demand_df_delta_path}'")
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC 
-# MAGIC SELECT * FROM demand_db.part_level_demand
+display(spark.sql(f"SELECT * FROM {dbName}.part_level_demand"))
 
 # COMMAND ----------
 
-# MAGIC %sql 
-# MAGIC 
-# MAGIC SELECT COUNT(*) as row_count FROM demand_db.part_level_demand
+display(spark.sql(f"SELECT COUNT(*) as row_count FROM {dbName}.part_level_demand"))
 
 # COMMAND ----------
 
@@ -364,15 +376,11 @@ demand_df.write \
 
 # COMMAND ----------
 
-# MAGIC %pip install --upgrade networkx
-# MAGIC %pip install --upgrade pydot
-
-# COMMAND ----------
-
 import string
 import networkx as nx
 import random
 import numpy as np
+import os
 
 # COMMAND ----------
 
@@ -445,10 +453,6 @@ all_skus = demand_df.select('SKU').distinct().rdd.flatMap(lambda x: x).collect()
 
 # COMMAND ----------
 
-all_skus
-
-# COMMAND ----------
-
 # Generaze edges
 depth = 3
 edge_list = [ ]
@@ -501,38 +505,45 @@ final_mat_number_to_sku_mapper_df = spark.createDataFrame(final_mat_number_to_sk
 
 # COMMAND ----------
 
+bom_df_delta_path = os.path.join(cloud_storage_path, 'bom_df_delta')
+
+# COMMAND ----------
+
 # Write the data 
 bom_df.write \
 .mode("overwrite") \
 .format("delta") \
-.save('/FileStore/tables/demand_forecasting_solution_accelerator/bom_df_delta/')
+.save(bom_df_delta_path)
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC CREATE DATABASE IF NOT EXISTS demand_db;
-# MAGIC DROP TABLE IF EXISTS demand_db.bom;
-# MAGIC CREATE TABLE demand_db.bom USING DELTA LOCATION '/FileStore/tables/demand_forecasting_solution_accelerator/bom_df_delta/'
+spark.sql(f"DROP TABLE IF EXISTS {dbName}.bom")
+spark.sql(f"CREATE TABLE {dbName}.bom USING DELTA LOCATION '{bom_df_delta_path}'")
+
+# COMMAND ----------
+
+final_mat_number_to_sku_mapper_df_path = os.path.join(cloud_storage_path, 'sku_mapper_df_delta')
 
 # COMMAND ----------
 
 final_mat_number_to_sku_mapper_df.write \
 .mode("overwrite") \
 .format("delta") \
-.save('/FileStore/tables/demand_forecasting_solution_accelerator/sku_mapper_df_delta/')
+.save(final_mat_number_to_sku_mapper_df_path)
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC DROP TABLE IF EXISTS demand_db.sku_mapper;
-# MAGIC CREATE TABLE demand_db.sku_mapper USING DELTA LOCATION '/FileStore/tables/demand_forecasting_solution_accelerator/sku_mapper_df_delta/'
+spark.sql(f"DROP TABLE IF EXISTS {dbName}.sku_mapper")
+spark.sql(f"CREATE TABLE {dbName}.sku_mapper USING DELTA LOCATION '{final_mat_number_to_sku_mapper_df_path}'")
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC select * from demand_db.sku_mapper
+display(spark.sql(f"select * from {dbName}.sku_mapper"))
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC select * from demand_db.bom
+display(spark.sql(f"select * from {dbName}.bom"))
+
+# COMMAND ----------
+
+print("Ending ./_resources/01-data-generator")

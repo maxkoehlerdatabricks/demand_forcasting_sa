@@ -1,7 +1,7 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC 
-# MAGIC # Part-Level Demand forecasting 
+# MAGIC # Introduction
 # MAGIC Demand forecasting is an integral business process for manufacturers. Manufacturers require accurate forecasts in order to:  
 # MAGIC 1. plan the scaling of manufacturing operations
 # MAGIC 2. ensure sufficient inventory
@@ -31,7 +31,25 @@
 # MAGIC - Tracking experiments using MLFlow ensures reproducibility, traceable performance metrics, and easy re-use.
 # MAGIC 
 # MAGIC 
-# MAGIC In this solution accelerator, we will show-case the benefits of using Databricks on a simulated data set. We assume the role of a tier one automotive manufacturer producing advanced driver assistance systems. We can first use collaborative notebooks to flexibly explore a set of time series models in depth. Finally, we then demonstrate the ability to train and deploy the models at scale using Databricks’ ability to distribute and parallelize data science workflows with minimal code changes.
+# MAGIC **In this solution accelerator, we will show-case the benefits of using Databricks on a simulated data set. We assume the role of a tier one automotive manufacturer producing advanced driver assistance systems. We will then proceed in three steps:**
+# MAGIC 
+# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Demand_Forecasting_Intro.jpg" width=49%>
+# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Fine_Grained_Demand_Forecasting_Intro.jpg" width=49%>
+# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Derive_Raw_Material_Demand_Intro.jpg" width=49%>
+# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Manage_Material_Shortages_Intro.jpg" width=49%>
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # Setup
+
+# COMMAND ----------
+
+dbutils.widgets.dropdown("reset_all_data", "false", ["true", "false"], "Reset all data")
+
+# COMMAND ----------
+
+# MAGIC %run ./_resources/00-setup $reset_all_data=$reset_all_data
 
 # COMMAND ----------
 
