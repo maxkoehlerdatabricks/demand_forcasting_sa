@@ -53,4 +53,17 @@ dbutils.widgets.dropdown("reset_all_data", "false", ["true", "false"], "Reset al
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC # Understanding the data
+
+# COMMAND ----------
+
+demand_df = spark.read.table(f"{dbName}.part_level_demand")
+
+# COMMAND ----------
+
+display(demand_df.select("Product").dropDuplicates())
+
+# COMMAND ----------
+
 
