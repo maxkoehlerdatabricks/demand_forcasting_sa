@@ -1,4 +1,21 @@
 # Databricks notebook source
+# MAGIC %md
+# MAGIC # Fine Grained Demand Forecasting
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC *Prerequisite: Make sure to run 01_Introduction_And_Setup before running this notebook.*
+# MAGIC 
+# MAGIC In this notebook we first find an appropriate time series model and then apply that very same approach to train multiple models in parallel with great speed and cost-effectiveness.  
+# MAGIC 
+# MAGIC Key highlights for this notebook:
+# MAGIC - Use Databricks' collaborative and interactive notebook environment to find an appropriate time series mdoel
+# MAGIC - Pandas UDFs (user-defined functions) can take your single-node data science code, and distribute it across different keys (e.g. SKU)  
+# MAGIC - Hyperopt can also perform hyperparameter tuning from within a Pandas UDF  
+
+# COMMAND ----------
+
 #If True, all output files are in user specific databases, If False, a global database for the report is used
 user_based_data = True
 
@@ -46,7 +63,7 @@ from pyspark.sql.types import *
 
 # MAGIC %md
 # MAGIC 
-# MAGIC # Build a model
+# MAGIC ## Build a model
 # MAGIC *while levaraging Databricks' collaborative and interactive environment*
 
 # COMMAND ----------
@@ -62,7 +79,7 @@ demand_df = demand_df.cache() # just for this example notebook
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Examine an example: Extract a single time series and convert to pandas dataframe
+# MAGIC ### Examine an example: Extract a single time series and convert to pandas dataframe
 
 # COMMAND ----------
 
@@ -79,7 +96,7 @@ display(pdf)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Determine the forecast horizon
+# MAGIC ### Determine the forecast horizon
 
 # COMMAND ----------
 
@@ -91,7 +108,7 @@ score = series_df.iloc[~np.array(is_history)]
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Derive exogenous variables
+# MAGIC ### Derive exogenous variables
 
 # COMMAND ----------
 
@@ -113,7 +130,7 @@ score_exo = exo_df.iloc[~np.array(is_history)]
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Try the Holt’s Winters Seasonal Method
+# MAGIC ### Try the Holt’s Winters Seasonal Method
 
 # COMMAND ----------
 
@@ -188,7 +205,7 @@ plt.title("Holts Winters Seasonal Method")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ## Try the SARIMAX method
+# MAGIC ### Try the SARIMAX method
 
 # COMMAND ----------
 
@@ -198,7 +215,7 @@ plt.title("Holts Winters Seasonal Method")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### First model
+# MAGIC #### First model
 
 # COMMAND ----------
 
@@ -226,7 +243,7 @@ plt.title("SARIMAX")
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Taking advantage of MLFlow and Hyperopt to find optimal parameters in the SARIMAX model
+# MAGIC #### Taking advantage of MLFlow and Hyperopt to find optimal parameters in the SARIMAX model
 
 # COMMAND ----------
 
@@ -311,19 +328,8 @@ displayHTML(f"The optimal parameters for the selected series with SKU '{pdf.SKU.
 
 # MAGIC %md
 # MAGIC 
-# MAGIC # Train thousands of models at scale, any time
+# MAGIC ## Train thousands of models at scale, any time
 # MAGIC *while still using your preferred libraries and approaches*
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC 
-# MAGIC While the previous section demonstrated the benefits of Databricks' collaborative and interactive environment,  
-# MAGIC in this part, we can apply that very same approach to train multiple models in parallel with great speed and cost-effectiveness.  
-# MAGIC 
-# MAGIC Key highlights for this notebook:
-# MAGIC - Pandas UDFs (user-defined functions) can take your single-node data science code, and distribute it across different keys (e.g. SKU)  
-# MAGIC - Hyperopt can also perform hyperparameter tuning from within a Pandas UDF  
 
 # COMMAND ----------
 
@@ -371,10 +377,7 @@ def split_train_score_data(data, forecast_horizon=FORECAST_HORIZON):
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
-# MAGIC #### Let's have a look at our core dataset, this time with exogenous variables
-# MAGIC 
-# MAGIC This time, data for all SKUs is logically unified within a Spark DataFrame, allowing large-scale distributed processing.
+# MAGIC Let's have a look at our core dataset, this time with exogenous variables. This time, data for all SKUs is logically unified within a Spark DataFrame, allowing large-scale distributed processing.
 
 # COMMAND ----------
 
@@ -389,9 +392,9 @@ display(enriched_df)
 
 # MAGIC %md 
 # MAGIC 
-# MAGIC ## Solution: High-Level Overview
+# MAGIC ### Solution: High-Level Overview
 # MAGIC 
-# MAGIC #### Benefits
+# MAGIC Benefits:
 # MAGIC - Pure Python & Pandas: easy to develop, test
 # MAGIC - Continue using your favorite libraries
 # MAGIC - Simply assume you're working with a Pandas DataFrame for a single SKU
@@ -502,7 +505,7 @@ tuning_schema = StructType(
 
 # MAGIC %md
 # MAGIC 
-# MAGIC ### Run distributed processing: `groupBy("SKU")` + `applyInPandas(...)`
+# MAGIC #### Run distributed processing: `groupBy("SKU")` + `applyInPandas(...)`
 
 # COMMAND ----------
 
@@ -516,7 +519,7 @@ display(forecast_df)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC # Save to Delta
+# MAGIC ## Save to Delta
 
 # COMMAND ----------
 
@@ -542,5 +545,5 @@ display(spark.sql(f"SELECT * FROM {dbName}.part_level_demand_with_forecasts"))
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Analyze the SKU demand
+# MAGIC ## Analyze the SKU demand
 # MAGIC You can analyze the SKU demand using Databricks' simple dashboard functionality. See   [here](https://e2-demo-field-eng.cloud.databricks.com/sql/dashboards/fa660958-35a9-4710-a393-b050dd59275a-demand-analysis?edit&o=1444828305810485&p_w27bd4a0b-88a2-422a-bda5-9363bb3e7921_sku_parameter=%5B%22LRR_0X6CLF%22%5D&p_w6280d39b-f9b1-4644-b80c-caf98965b76e_sku_parameter=%5B%22LRR_0X6CLF%22%2C%22SRL_Z61857%22%5D).
