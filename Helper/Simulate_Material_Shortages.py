@@ -9,29 +9,6 @@ cloud_storage_path = dbutils.widgets.get('cloud_storage_path')
 
 # COMMAND ----------
 
-#notebook_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
-
-# COMMAND ----------
-
-#notebook_path
-
-# COMMAND ----------
-
-#dbutils.notebook.run(generate_data_notebook_path, 600, {"reset_all_data": reset_all, "dbName": dbName, "cloud_storage_path": cloud_storage_path})
-
-# COMMAND ----------
-
-#dbutils.widgets.removeAll()
-
-# COMMAND ----------
-
-#if os.path.basename(os.path.dirname(notebook_path)) == 'Helper':
-#  %run ../_resources_outside/00-global-setup $reset_all_data=false $db_prefix=demand_level_forecasting
-#else:
-#  %run ./_resources_outside/00-global-setup $reset_all_data=false $db_prefix=demand_level_forecasting 
-
-# COMMAND ----------
-
 import os
 import random
 import pyspark.sql.functions as f
