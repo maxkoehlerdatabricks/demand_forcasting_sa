@@ -1,14 +1,14 @@
 # Databricks notebook source
 # MAGIC %md
 # MAGIC # Manage a material shortage
-# MAGIC After checking with the supplier how much raw material can actually be delivered we can now traverse the manufacturing value chain forwards to find out how much SKU's can actually be shipped to the customer. If one raw material is the bottleneck for producing a specific SKU, orders of the other raw materials for that SKU can be adjusted accordingly to save storage costs.
+# MAGIC After checking with the supplier how much raw material can actually be delivered we can now traverse the manufacturing value chain forwards to find out how many SKU's can actually be shipped to the customer. If one raw material is the bottleneck for producing a specific SKU, orders of the other raw materials for that SKU can be adjusted accordingly to save storage costs.
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC *Prerequisite: Make sure to run 01_Simulate_Data, 03_Scaling_Model_Workflows and 04_Map_Demand_To_Raw before running this notebook.*
+# MAGIC *Prerequisite: Make sure to run 01_Introduction_And_Setup, 02_Fine_Grained_Demand_Forecasting and 03_Derive_Raw_Material_Demand before running this notebook.*
 # MAGIC 
-# MAGIC While the previous notebook *(04_Map_Demand_To_Raw)* demonstrated Databricks' graph functionality to traverse the manufacturing value chain backwards to find out how much raw material is needed for production, this notebook:
+# MAGIC While the previous notebook *(03_Derive_Raw_Material_Demand)* demonstrated Databricks' graph functionality to traverse the manufacturing value chain backwards to find out how much raw material is needed for production, this notebook:
 # MAGIC - Checks the availability of each raw material
 # MAGIC - Traverses the manufacturing value chain forwards to check the quantity of SKU's that can actually be delivered
 # MAGIC - Adjusts orders for raw materials accordingly
@@ -23,17 +23,44 @@
 
 # COMMAND ----------
 
+#If True, all output files are in user specific databases, If False, a global database for the report is used
+user_based_data = True
+
+# COMMAND ----------
+
+# MAGIC %run ./_resources_outside/00-global-setup $reset_all_data=false $db_prefix=demand_level_forecasting
+
+# COMMAND ----------
+
+if (not user_based_data):
+  cloud_storage_path = '/FileStore/tables/demand_forecasting_solution_accelerator/'
+  dbName = 'demand_db' 
+  
+print(cloud_storage_path)
+print(dbName)
+
+# COMMAND ----------
+
+import os
+import pyspark.sql.functions as f
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ## Get all reported raw material shortages
 
 # COMMAND ----------
 
-# MAGIC %run ./Helper/Simulate_Material_Shortages
+notebook_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
+notebook_path = os.path.join(os.path.dirname(notebook_path),"Helper/Simulate_Material_Shortages")
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC select * from demand_db.material_shortage
+dbutils.notebook.run(notebook_path, 600, {"dbName": dbName, "cloud_storage_path": cloud_storage_path})
+
+# COMMAND ----------
+
+display(spark.sql(f"select * from {dbName}.material_shortage"))
 
 # COMMAND ----------
 
@@ -43,8 +70,8 @@
 
 # COMMAND ----------
 
-demand_raw_df = spark.read.table("demand_db.forecast_raw")
-material_shortage_df = spark.read.table("demand_db.material_shortage")
+demand_raw_df = spark.read.table(f"{dbName}.forecast_raw")
+material_shortage_df = spark.read.table(f"{dbName}.material_shortage")
 
 # COMMAND ----------
 
@@ -93,18 +120,24 @@ display(raw_overplanning_df)
 
 # COMMAND ----------
 
+material_shortage_data_path = os.path.join(cloud_storage_path, "material_shortage_sku")
+
+# COMMAND ----------
+
 # Write the data 
 affected_skus_df.write \
 .mode("overwrite") \
 .format("delta") \
-.save('/FileStore/tables/demand_forecasting_solution_accelerator/material_shortage_sku/')
+.save(material_shortage_data_path)
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC CREATE DATABASE IF NOT EXISTS demand_db;
-# MAGIC DROP TABLE IF EXISTS demand_db.material_shortage_sku;
-# MAGIC CREATE TABLE demand_db.material_shortage_sku USING DELTA LOCATION '/FileStore/tables/demand_forecasting_solution_accelerator/material_shortage_sku/'
+spark.sql(f"DROP TABLE IF EXISTS {dbName}.material_shortage_sku")
+spark.sql(f"CREATE TABLE {dbName}.material_shortage_sku USING DELTA LOCATION '{material_shortage_data_path}'")
+
+# COMMAND ----------
+
+material_shortage_raw_data_path = os.path.join(cloud_storage_path, "material_shortage_raw")
 
 # COMMAND ----------
 
@@ -112,23 +145,20 @@ affected_skus_df.write \
 raw_overplanning_df.write \
 .mode("overwrite") \
 .format("delta") \
-.save('/FileStore/tables/demand_forecasting_solution_accelerator/material_shortage_raw/')
+.save(material_shortage_raw_data_path)
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC DROP TABLE IF EXISTS demand_db.material_shortage_raw;
-# MAGIC CREATE TABLE demand_db.material_shortage_raw USING DELTA LOCATION '/FileStore/tables/demand_forecasting_solution_accelerator/material_shortage_raw/'
+spark.sql(f"DROP TABLE IF EXISTS {dbName}.material_shortage_raw")
+spark.sql(f"CREATE TABLE {dbName}.material_shortage_raw USING DELTA LOCATION '{material_shortage_raw_data_path}'")
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC SELECT * FROM demand_db.material_shortage_sku;
+display(spark.sql(f"SELECT * FROM {dbName}.material_shortage_sku"))
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC SELECT * FROM demand_db.material_shortage_raw;
+display(spark.sql(f"SELECT * FROM {dbName}.material_shortage_raw"))
 
 # COMMAND ----------
 

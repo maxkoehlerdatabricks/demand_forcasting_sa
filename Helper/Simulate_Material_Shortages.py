@@ -1,11 +1,45 @@
 # Databricks notebook source
+dbutils.widgets.text('dbName',  'demand_db' , 'Database Name')
+dbutils.widgets.text('cloud_storage_path',  '/FileStore/tables/demand_forecasting_solution_accelerator/', 'Storage Path')
+
+# COMMAND ----------
+
+dbName = dbutils.widgets.get('dbName')
+cloud_storage_path = dbutils.widgets.get('cloud_storage_path')
+
+# COMMAND ----------
+
+#notebook_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
+
+# COMMAND ----------
+
+#notebook_path
+
+# COMMAND ----------
+
+#dbutils.notebook.run(generate_data_notebook_path, 600, {"reset_all_data": reset_all, "dbName": dbName, "cloud_storage_path": cloud_storage_path})
+
+# COMMAND ----------
+
+#dbutils.widgets.removeAll()
+
+# COMMAND ----------
+
+#if os.path.basename(os.path.dirname(notebook_path)) == 'Helper':
+#  %run ../_resources_outside/00-global-setup $reset_all_data=false $db_prefix=demand_level_forecasting
+#else:
+#  %run ./_resources_outside/00-global-setup $reset_all_data=false $db_prefix=demand_level_forecasting 
+
+# COMMAND ----------
+
+import os
 import random
 import pyspark.sql.functions as f
 from pyspark.sql.types import FloatType
 
 # COMMAND ----------
 
-demand_raw_df = spark.read.table("demand_db.forecast_raw")
+demand_raw_df = spark.read.table(f"{dbName}.forecast_raw")
 all_skus = demand_raw_df.select('SKU').distinct().rdd.flatMap(lambda x: x).collect()
 material_shortages_sku = random.sample(set(all_skus), 2)
 all_raw =  demand_raw_df.filter(f.col("SKU").isin(material_shortages_sku)).select('RAW').distinct().rdd.flatMap(lambda x: x).collect()
@@ -31,15 +65,17 @@ material_shortage_df = (demand_raw_df.
 
 # COMMAND ----------
 
+material_shortage_df_delta_path = os.path.join(cloud_storage_path, 'material_shortage')
+
+# COMMAND ----------
+
 # Write the data 
 material_shortage_df.write \
 .mode("overwrite") \
 .format("delta") \
-.save('/FileStore/tables/demand_forecasting_solution_accelerator/material_shortage/')
+.save(material_shortage_df_delta_path)
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC CREATE DATABASE IF NOT EXISTS demand_db;
-# MAGIC DROP TABLE IF EXISTS demand_db.material_shortage;
-# MAGIC CREATE TABLE demand_db.material_shortage USING DELTA LOCATION '/FileStore/tables/demand_forecasting_solution_accelerator/material_shortage/'
+spark.sql(f"DROP TABLE IF EXISTS {dbName}.material_shortage")
+spark.sql(f"CREATE TABLE {dbName}.material_shortage USING DELTA LOCATION '{material_shortage_df_delta_path}'")

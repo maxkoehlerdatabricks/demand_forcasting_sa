@@ -6,9 +6,9 @@
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC *Prerequisite: Make sure to run 01_Simulate_Data and 03_Scaling_Model_Workflows before running this notebook.*
+# MAGIC *Prerequisite: Make sure to run 01_Introduction_And_Setup and 02_Fine_Grained_Demand_Forecasting before running this notebook.*
 # MAGIC 
-# MAGIC While the previous notebook *(03_Scaling_Model_Workflows)* demonstrated the benefits of one of the Databricks' approach to train multiple models in parallel with great speed and cost-effectiveness,
+# MAGIC While the previous notebook *(002_Fine_Grained_Demand_Forecasting)* demonstrated the benefits of one of the Databricks' approach to train multiple models in parallel with great speed and cost-effectiveness,
 # MAGIC in this part we show how to use Databricks' graph functionality to traverse the manufacturing value chain to find out how much raw material is needed for production.
 # MAGIC 
 # MAGIC Key highlights for this notebook:
@@ -27,6 +27,25 @@
 
 # COMMAND ----------
 
+#If True, all output files are in user specific databases, If False, a global database for the report is used
+user_based_data = True
+
+# COMMAND ----------
+
+# MAGIC %run ./_resources_outside/00-global-setup $reset_all_data=false $db_prefix=demand_level_forecasting
+
+# COMMAND ----------
+
+if (not user_based_data):
+  cloud_storage_path = '/FileStore/tables/demand_forecasting_solution_accelerator/'
+  dbName = 'demand_db' 
+  
+print(cloud_storage_path)
+print(dbName)
+
+# COMMAND ----------
+
+import os
 import string
 import networkx as nx
 import random
@@ -63,7 +82,7 @@ edges = spark.createDataFrame([
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC The above data frame represents a very simple BoM. It represents a building plan for a finished product. It consists of several intermediate products and raw materials. Quantities are also given. In reality a BoM consists of many more and previously unknown number of steps. Needless to say that this also means that there are many more raw materials and intermediate products. In this picture, we assume that the final product is mapped to one SKU. This information would not be part of a typical BoM. Note that a BoM is an information that is relevant mainly in production planning systems, whereas an SKU would be something that is rather part of a logistics system. We assume that a look up table exists that maps each finished product to its SKU. The above BoM is then a result of artificially adding another step with quantity 1. We now translate the manufacturing terms in terms that are used in graph theory. Each step is an edge. The raw materials, intermediate products, the finished product and the SKU are vertices.
+# MAGIC The above data frame represents a very simple BoM. It represents a building plan for a finished product. It consists of several intermediate products and raw materials. Quantities are also given. In reality, a BoM consists of many more and previously unknown number of steps. Needless to say that this also means that there are many more raw materials and intermediate products. In this picture, we assume that the final product is mapped to one SKU. This information would not be part of a typical BoM. Note that a BoM is mainly relevant in production planning systems, whereas an SKU would be something that is rather part of a logistics system. We assume that a look up table exists that maps each finished product to its SKU. The above BoM is then a result of artificially adding another step with quantity 1. We now translate the manufacturing terms in terms that are used in graph theory: Each assembly step is an edge; the raw materials, intermediate products, the finished product and the SKU are vertices.
 
 # COMMAND ----------
 
@@ -339,9 +358,15 @@ display(aggregated_bom)
 
 # COMMAND ----------
 
-demand_df = spark.read.table("demand_db.part_level_demand")
-sku_mapper = spark.read.table("demand_db.sku_mapper")
-bom = spark.read.table("demand_db.bom")
+demand_df = spark.read.table(f"{dbName}.part_level_demand_with_forecasts")
+sku_mapper = spark.read.table(f"{dbName}.sku_mapper")
+bom = spark.read.table(f"{dbName}.bom")
+
+# COMMAND ----------
+
+demand_df = (demand_df.
+        withColumn("Demand", f.col("Demand_Fitted")).
+        select(f.col("Product"), f.col("SKU"), f.col("Date"), f.col("Demand")))
 
 # COMMAND ----------
 
@@ -362,8 +387,7 @@ display(sku_mapper)
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC select distinct SKU from demand_db.part_level_demand 
+display(spark.sql(f"select distinct SKU from {dbName}.part_level_demand_with_forecasts"))
 
 # COMMAND ----------
 
@@ -427,10 +451,6 @@ display(aggregated_bom)
 
 # COMMAND ----------
 
-demand_df = spark.read.table("demand_db.part_level_demand")
-
-# COMMAND ----------
-
 demand_raw_df = (demand_df.
       join(aggregated_bom, ["SKU"], how="inner").
       select("Product","SKU","RAW", "Date","Demand", "QTY_RAW").
@@ -447,23 +467,24 @@ display(demand_raw_df)
 
 # COMMAND ----------
 
+forecast_df_delta_path = os.path.join(cloud_storage_path, 'forecast_raw')
+
+# COMMAND ----------
+
 # Write the data 
 demand_raw_df.write \
 .mode("overwrite") \
 .format("delta") \
-.save('/FileStore/tables/demand_forecasting_solution_accelerator/forecast_raw/')
+.save(forecast_df_delta_path)
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC CREATE DATABASE IF NOT EXISTS demand_db;
-# MAGIC DROP TABLE IF EXISTS demand_db.forecast_raw;
-# MAGIC CREATE TABLE demand_db.forecast_raw USING DELTA LOCATION '/FileStore/tables/demand_forecasting_solution_accelerator/forecast_raw/'
+spark.sql(f"DROP TABLE IF EXISTS {dbName}.forecast_raw")
+spark.sql(f"CREATE TABLE {dbName}.forecast_raw USING DELTA LOCATION '{forecast_df_delta_path}'")
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC SELECT * FROM demand_db.forecast_raw;
+display(spark.sql(f"SELECT * FROM {dbName}.forecast_raw"))
 
 # COMMAND ----------
 
