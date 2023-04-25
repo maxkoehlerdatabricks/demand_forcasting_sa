@@ -185,12 +185,13 @@ display(date_range)
 # COMMAND ----------
 
 #################################################
-# Enhance te product table with parameters for simulating time series
+# Enhance the product table with parameters for simulating time series
 #################################################
 
 # Get a list of all products from the hierarchy table and generate a list 
 from  pyspark.sql.types import FloatType, ArrayType, IntegerType
-from pyspark.sql.functions import monotonically_increasing_id
+import pyspark.sql.functions as F
+from pyspark.sql.window import Window
 
 
 # Define schema for new columns
@@ -223,14 +224,26 @@ pdf_helper = (pd.DataFrame(variance_random_number, columns =['Variance_RN']).
 
 # Append column-wise
 spark_df_helper = spark.createDataFrame(pdf_helper, schema=arma_schema)
-spark_df_helper = spark_df_helper.withColumn("row_id", monotonically_increasing_id())
-product_identifier_lookup = product_identifier_lookup.withColumn("row_id", monotonically_increasing_id())
-product_identifier_lookup_extended = product_identifier_lookup.join(spark_df_helper, ("row_id")).drop("row_id")
-product_identifier_lookup = product_identifier_lookup.drop("row_id")
+spark_df_helper = spark_df_helper.withColumn(
+  "row_id", F.row_number().over(Window().partitionBy().orderBy("Offset_RN")) 
+  # dummy window just to get matching row numbers
+  )
+product_identifier_lookup_with_row_ids = product_identifier_lookup.withColumn(
+  "row_id", F.row_number().over(Window().partitionBy().orderBy("Product"))
+  # dummy window just to get matching row numbers
+  )
+product_identifier_lookup_extended = product_identifier_lookup_with_row_ids.join(
+  spark_df_helper, ("row_id")
+  ).drop("row_id")
+product_identifier_lookup = product_identifier_lookup_with_row_ids.drop("row_id")
 product_hierarchy_extended = product_hierarchy.join(product_identifier_lookup_extended.drop("SKU_Prefix"), ["Product"], how = "inner")
-assert product_identifier_lookup_extended.count() == product_identifier_lookup.count(), "Ambigious number of rows after join"
+assert product_identifier_lookup_extended.count() == product_identifier_lookup.count(), "Ambiguous number of rows after join"
 
-display(product_hierarchy_extended)
+display(product_identifier_lookup_with_row_ids)
+
+# COMMAND ----------
+
+display(product_identifier_lookup)
 
 # COMMAND ----------
 
@@ -352,6 +365,7 @@ demand_df.write \
 
 # COMMAND ----------
 
+spark.sql(f"CREATE SCHEMA IF NOT EXISTS {dbName}")
 spark.sql(f"DROP TABLE IF EXISTS {dbName}.part_level_demand")
 spark.sql(f"CREATE TABLE {dbName}.part_level_demand USING DELTA LOCATION '{demand_df_delta_path}'")
 

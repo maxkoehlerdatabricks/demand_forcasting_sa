@@ -20,9 +20,18 @@ user_based_data = True
 
 # COMMAND ----------
 
+username = spark.sql('select current_user() as user').collect()[0]['user']
+username_friendly = username.split("@")[0].replace(".", "_").replace("-", "_")
+print(username_friendly)
+
+# COMMAND ----------
+
 if (not user_based_data):
   cloud_storage_path = '/FileStore/tables/demand_forecasting_solution_accelerator/'
-  dbName = 'demand_db' 
+  dbName = 'demand_db'
+else:
+  cloud_storage_path = f'/FileStore/tables/demand_forecasting_solution_accelerator/{username_friendly}/'
+  dbName = f'{username_friendly}_demand_db'
 
 # COMMAND ----------
 

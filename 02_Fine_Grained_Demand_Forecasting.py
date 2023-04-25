@@ -21,14 +21,21 @@ user_based_data = True
 
 # COMMAND ----------
 
-# MAGIC %run ./_resources_outside/00-global-setup $reset_all_data=false $db_prefix=demand_level_forecasting
+# %run ./_resources_outside/00-global-setup $reset_all_data=false $db_prefix=demand_level_forecasting
 
 # COMMAND ----------
 
+username = spark.sql('select current_user() as user').collect()[0]['user']
+username_friendly = username.split("@")[0].replace(".", "_").replace("-", "_")
+print(username_friendly)
+
 if (not user_based_data):
   cloud_storage_path = '/FileStore/tables/demand_forecasting_solution_accelerator/'
-  dbName = 'demand_db' 
-  
+  dbName = 'demand_db'
+else:
+  cloud_storage_path = f'/FileStore/tables/demand_forecasting_solution_accelerator/{username_friendly}/'
+  dbName = f'{username_friendly}_demand_db'
+
 print(cloud_storage_path)
 print(dbName)
 
@@ -328,7 +335,7 @@ displayHTML(f"The optimal parameters for the selected series with SKU '{pdf.SKU.
 
 # MAGIC %md
 # MAGIC 
-# MAGIC ## Train thousands of models at scale, any time
+# MAGIC ## Train thousands of models at scale
 # MAGIC *while still using your preferred libraries and approaches*
 
 # COMMAND ----------
@@ -405,7 +412,7 @@ display(enriched_df)
 
 # MAGIC %md
 # MAGIC 
-# MAGIC #### Build, tune ansd score a model per each SKU with Pandas UDFs
+# MAGIC #### Build, tune and score a model per each SKU with Pandas UDFs
 
 # COMMAND ----------
 
