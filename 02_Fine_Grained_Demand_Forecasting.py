@@ -306,7 +306,7 @@ space = {
 
 rstate = np.random.default_rng(123)
 
-with mlflow.start_run(run_name='mkh_test_sa'):
+with mlflow.start_run(run_name=f'{username_friendly}_test_sa'):
   argmin = fmin(
     fn=evaluate_model,
     space=space,
