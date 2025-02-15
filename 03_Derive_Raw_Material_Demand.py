@@ -7,10 +7,10 @@
 
 # MAGIC %md
 # MAGIC *Prerequisite: Make sure to run 01_Introduction_And_Setup and 02_Fine_Grained_Demand_Forecasting before running this notebook.*
-# MAGIC 
+# MAGIC
 # MAGIC While the previous notebook *(002_Fine_Grained_Demand_Forecasting)* demonstrated the benefits of one of the Databricks' approach to train multiple models in parallel with great speed and cost-effectiveness,
 # MAGIC in this part we show how to use Databricks' graph functionality to traverse the manufacturing value chain to find out how much raw material is needed for production.
-# MAGIC 
+# MAGIC
 # MAGIC Key highlights for this notebook:
 # MAGIC - Solve large scale graph problems by using GraphX as a distributed graph processing framework on top of Apache Spark
 # MAGIC - Leverage the full support for property graphs to incorporate business knowlegde and the traverse the manufacturing value chain 
@@ -28,20 +28,36 @@
 # COMMAND ----------
 
 #If True, all output files are in user specific databases, If False, a global database for the report is used
-user_based_data = True
+#user_based_data = True
 
 # COMMAND ----------
 
-# MAGIC %run ./_resources_outside/00-global-setup $reset_all_data=false $db_prefix=demand_level_forecasting
+#%run ./_resources_outside/00-global-setup $reset_all_data=false $db_prefix=demand_level_forecasting
 
 # COMMAND ----------
 
-if (not user_based_data):
-  cloud_storage_path = '/FileStore/tables/demand_forecasting_solution_accelerator/'
-  dbName = 'demand_db' 
-  
-print(cloud_storage_path)
+#if (not user_based_data):
+#  cloud_storage_path = '/FileStore/tables/demand_forecasting_solution_accelerator/'
+#  dbName = 'demand_db' 
+#  
+##print(cloud_storage_path)
 print(dbName)
+
+# COMMAND ----------
+
+dbutils.widgets.dropdown('reset_all_data', 'false', ['true', 'false'], 'Reset all data')
+dbutils.widgets.text('catalogName',  'maxkoehler_demos' , 'Catalog Name')
+dbutils.widgets.text('dbName',  'demand_db' , 'Database Name')
+
+# COMMAND ----------
+
+catalogName = dbutils.widgets.get('catalogName')
+dbName = dbutils.widgets.get('dbName')
+reset_all_data = dbutils.widgets.get('reset_all_data') == 'true'
+
+# COMMAND ----------
+
+# MAGIC %run ./_resources/00-setup $reset_all_data=false $catalogName=$catalogName $dbName=$dbName 
 
 # COMMAND ----------
 
@@ -132,7 +148,7 @@ g = GraphFrame(vertices, edges)
 # MAGIC %md
 # MAGIC ### Step 1
 # MAGIC The following function uses the concept of aggrgated messaging to derive a table that maps the raw for each SKU. 
-# MAGIC 
+# MAGIC
 # MAGIC See https://spark.apache.org/docs/latest/graphx-programming-guide.html
 
 # COMMAND ----------
@@ -241,7 +257,7 @@ display(res1)
 # MAGIC %md
 # MAGIC ### Step 2
 # MAGIC The following function uses the concept of aggrgated messaging to derive a table that maps the raw to the quantity that is needed to produce the desired finished product. For each raw material it is the product of quantities of all succeeding assemlby steps.
-# MAGIC 
+# MAGIC
 # MAGIC See https://spark.apache.org/docs/latest/graphx-programming-guide.html
 
 # COMMAND ----------
@@ -358,8 +374,8 @@ display(aggregated_bom)
 
 # COMMAND ----------
 
-demand_df = spark.read.table(f"{dbName}.part_level_demand_with_forecasts")
-sku_mapper = spark.read.table(f"{dbName}.sku_mapper")
+demand_df = spark.read.table(f"part_level_demand_with_forecasts")
+sku_mapper = spark.read.table(f"sku_mapper")
 bom = spark.read.table(f"{dbName}.bom")
 
 # COMMAND ----------
@@ -387,7 +403,7 @@ display(sku_mapper)
 
 # COMMAND ----------
 
-display(spark.sql(f"select distinct SKU from {dbName}.part_level_demand_with_forecasts"))
+display(spark.sql(f"select distinct SKU from part_level_demand_with_forecasts"))
 
 # COMMAND ----------
 
@@ -467,27 +483,4 @@ display(demand_raw_df)
 
 # COMMAND ----------
 
-forecast_df_delta_path = os.path.join(cloud_storage_path, 'forecast_raw')
-
-# COMMAND ----------
-
-# Write the data 
-demand_raw_df.write \
-.mode("overwrite") \
-.format("delta") \
-.save(forecast_df_delta_path)
-
-# COMMAND ----------
-
-spark.sql(f"DROP TABLE IF EXISTS {dbName}.forecast_raw")
-spark.sql(f"CREATE TABLE {dbName}.forecast_raw USING DELTA LOCATION '{forecast_df_delta_path}'")
-
-# COMMAND ----------
-
-display(spark.sql(f"SELECT * FROM {dbName}.forecast_raw"))
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ### Analyze the raw material demand
-# MAGIC You can analyze the SKU demand using Databricks' simple dashboard functionality. See   [here](https://e2-demo-field-eng.cloud.databricks.com/sql/dashboards/fa660958-35a9-4710-a393-b050dd59275a-demand-analysis?edit&o=1444828305810485&p_w27bd4a0b-88a2-422a-bda5-9363bb3e7921_sku_parameter=%5B%22LRR_0X6CLF%22%5D&p_w6280d39b-f9b1-4644-b80c-caf98965b76e_sku_parameter=%5B%22LRR_0X6CLF%22%2C%22SRL_Z61857%22%5D).
+demand_raw_df.write.mode("overwrite").saveAsTable("forecast_raw")

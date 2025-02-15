@@ -1,15 +1,15 @@
 # Databricks notebook source
 # MAGIC %md 
-# MAGIC 
+# MAGIC
 # MAGIC # Technical Setup notebook. Hide this cell results
 # MAGIC Initialize dataset to the current user and cleanup data when reset_all_data is set to true
-# MAGIC 
+# MAGIC
 # MAGIC Do not edit
 
 # COMMAND ----------
 
 dbutils.widgets.dropdown("reset_all_data", "false", ["true", "false"], "Reset all data")
-dbutils.widgets.text("db_prefix", "retail", "Database prefix")
+#dbutils.widgets.text("db_prefix", "retail", "Database prefix")
 dbutils.widgets.text("min_dbr_version", "9.1", "Min required DBR version")
 
 # COMMAND ----------

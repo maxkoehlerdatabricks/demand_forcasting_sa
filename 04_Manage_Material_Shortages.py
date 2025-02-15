@@ -7,12 +7,12 @@
 
 # MAGIC %md
 # MAGIC *Prerequisite: Make sure to run 01_Introduction_And_Setup, 02_Fine_Grained_Demand_Forecasting and 03_Derive_Raw_Material_Demand before running this notebook.*
-# MAGIC 
+# MAGIC
 # MAGIC While the previous notebook *(03_Derive_Raw_Material_Demand)* demonstrated Databricks' graph functionality to traverse the manufacturing value chain backwards to find out how much raw material is needed for production, this notebook:
 # MAGIC - Checks the availability of each raw material
 # MAGIC - Traverses the manufacturing value chain forwards to check the quantity of SKU's that can actually be delivered
 # MAGIC - Adjusts orders for raw materials accordingly
-# MAGIC 
+# MAGIC
 # MAGIC Key highlights for this notebook:
 # MAGIC - Use Delta and the previous notebook's results to traverse the manufacturing value chain forwards
 
@@ -24,20 +24,36 @@
 # COMMAND ----------
 
 #If True, all output files are in user specific databases, If False, a global database for the report is used
-user_based_data = True
+#user_based_data = True
 
 # COMMAND ----------
 
-# MAGIC %run ./_resources_outside/00-global-setup $reset_all_data=false $db_prefix=demand_level_forecasting
+#%run ./_resources_outside/00-global-setup $reset_all_data=false $db_prefix=demand_level_forecasting
 
 # COMMAND ----------
 
-if (not user_based_data):
-  cloud_storage_path = '/FileStore/tables/demand_forecasting_solution_accelerator/'
-  dbName = 'demand_db' 
+#if (not user_based_data):
+#  cloud_storage_path = '/FileStore/tables/demand_forecasting_solution_accelerator/'
+#  dbName = 'demand_db' 
   
-print(cloud_storage_path)
-print(dbName)
+#print(cloud_storage_path)
+#print(dbName)
+
+# COMMAND ----------
+
+dbutils.widgets.dropdown('reset_all_data', 'false', ['true', 'false'], 'Reset all data')
+dbutils.widgets.text('catalogName',  'maxkoehler_demos' , 'Catalog Name')
+dbutils.widgets.text('dbName',  'demand_db' , 'Database Name')
+
+# COMMAND ----------
+
+catalogName = dbutils.widgets.get('catalogName')
+dbName = dbutils.widgets.get('dbName')
+reset_all_data = dbutils.widgets.get('reset_all_data') == 'true'
+
+# COMMAND ----------
+
+# MAGIC %run ./_resources/00-setup $reset_all_data=false $catalogName=$catalogName $dbName=$dbName 
 
 # COMMAND ----------
 
@@ -53,14 +69,15 @@ import pyspark.sql.functions as f
 
 notebook_path = dbutils.notebook.entry_point.getDbutils().notebook().getContext().notebookPath().get()
 notebook_path = os.path.join(os.path.dirname(notebook_path),"Helper/Simulate_Material_Shortages")
+notebook_path
 
 # COMMAND ----------
 
-dbutils.notebook.run(notebook_path, 600, {"dbName": dbName, "cloud_storage_path": cloud_storage_path})
+dbutils.notebook.run(notebook_path, 600, {"catalogName" : catalogName,"dbName": dbName})
 
 # COMMAND ----------
 
-display(spark.sql(f"select * from {dbName}.material_shortage"))
+display(spark.sql(f"select * from material_shortage"))
 
 # COMMAND ----------
 

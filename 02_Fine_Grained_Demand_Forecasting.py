@@ -1,4 +1,8 @@
 # Databricks notebook source
+# MAGIC %pip install ray[tune]
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC # Fine Grained Demand Forecasting
 
@@ -6,9 +10,9 @@
 
 # MAGIC %md
 # MAGIC *Prerequisite: Make sure to run 01_Introduction_And_Setup before running this notebook.*
-# MAGIC 
+# MAGIC
 # MAGIC In this notebook we first find an appropriate time series model and then apply that very same approach to train multiple models in parallel with great speed and cost-effectiveness.  
-# MAGIC 
+# MAGIC
 # MAGIC Key highlights for this notebook:
 # MAGIC - Use Databricks' collaborative and interactive notebook environment to find an appropriate time series mdoel
 # MAGIC - Pandas UDFs (user-defined functions) can take your single-node data science code, and distribute it across different keys (e.g. SKU)  
@@ -17,7 +21,7 @@
 # COMMAND ----------
 
 #If True, all output files are in user specific databases, If False, a global database for the report is used
-user_based_data = True
+#user_based_data = True
 
 # COMMAND ----------
 
@@ -25,19 +29,19 @@ user_based_data = True
 
 # COMMAND ----------
 
-username = spark.sql('select current_user() as user').collect()[0]['user']
-username_friendly = username.split("@")[0].replace(".", "_").replace("-", "_")
-print(username_friendly)
+dbutils.widgets.dropdown('reset_all_data', 'false', ['true', 'false'], 'Reset all data')
+dbutils.widgets.text('catalogName',  'maxkoehler_demos' , 'Catalog Name')
+dbutils.widgets.text('dbName',  'demand_db' , 'Database Name')
 
-if (not user_based_data):
-  cloud_storage_path = '/FileStore/tables/demand_forecasting_solution_accelerator/'
-  dbName = 'demand_db'
-else:
-  cloud_storage_path = f'/FileStore/tables/demand_forecasting_solution_accelerator/{username_friendly}/'
-  dbName = f'{username_friendly}_demand_db'
+# COMMAND ----------
 
-print(cloud_storage_path)
-print(dbName)
+catalogName = dbutils.widgets.get('catalogName')
+dbName = dbutils.widgets.get('dbName')
+reset_all_data = dbutils.widgets.get('reset_all_data') == 'true'
+
+# COMMAND ----------
+
+# MAGIC %run ./_resources/00-setup $reset_all_data=false $catalogName=$catalogName $dbName=$dbName 
 
 # COMMAND ----------
 
@@ -69,7 +73,7 @@ from pyspark.sql.types import *
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC ## Build a model
 # MAGIC *while levaraging Databricks' collaborative and interactive environment*
 
@@ -80,7 +84,7 @@ from pyspark.sql.types import *
 
 # COMMAND ----------
 
-demand_df = spark.read.table(f"{dbName}.part_level_demand")
+demand_df = spark.read.table(f"part_level_demand")
 demand_df = demand_df.cache() # just for this example notebook
 
 # COMMAND ----------
@@ -264,25 +268,25 @@ plt.title("SARIMAX")
 
 # COMMAND ----------
 
-def evaluate_model(hyperopt_params):
-  
-  # Configure model parameters
-  params = hyperopt_params
-  
-  assert "p" in params and "d" in params and "q" in params, "Please provide p, d, and q"
-  
-  if 'p' in params: params['p']=int(params['p']) # hyperopt supplies values as float but model requires int
-  if 'd' in params: params['d']=int(params['d']) # hyperopt supplies values as float but model requires int
-  if 'q' in params: params['q']=int(params['q']) # hyperopt supplies values as float but model requires int
-    
-  order_parameters = (params['p'],params['d'],params['q'])
-
-  # For simplicity in this example, assume no seasonality
-  model1 = SARIMAX(train, exog=train_exo, order=order_parameters, seasonal_order=(0, 0, 0, 0))
-  fit1 = model1.fit(disp=False)
-  fcast1 = fit1.predict(start = min(score_exo.index), end = max(score_exo.index), exog = score_exo )
-
-  return {'status': hyperopt.STATUS_OK, 'loss': np.power(score.to_numpy() - fcast1.to_numpy(), 2).mean()}
+#def evaluate_model(hyperopt_params):
+#  
+#  # Configure model parameters
+#  params = hyperopt_params
+#  
+#  assert "p" in params and "d" in params and "q" in params, "Please provide p, d, and q"
+#  
+#  if 'p' in params: params['p']=int(params['p']) # hyperopt supplies values as float but model requires int
+#  if 'd' in params: params['d']=int(params['d']) # hyperopt supplies values as float but model requires int
+#  if 'q' in params: params['q']=int(params['q']) # hyperopt supplies values as float but model requires int
+#    
+#  order_parameters = (params['p'],params['d'],params['q'])
+#
+#  # For simplicity in this example, assume no seasonality
+#  model1 = SARIMAX(train, exog=train_exo, order=order_parameters, seasonal_order=(0, 0, 0, 0))
+#  fit1 = model1.fit(disp=False)
+#  fcast1 = fit1.predict(start = min(score_exo.index), end = max(score_exo.index), exog = score_exo )
+#
+#  return {'status': hyperopt.STATUS_OK, 'loss': np.power(score.to_numpy() - fcast1.to_numpy(), 2).mean()}
 
 # COMMAND ----------
 
@@ -291,11 +295,11 @@ def evaluate_model(hyperopt_params):
 
 # COMMAND ----------
 
-space = {
-  'p': scope.int(hyperopt.hp.quniform('p', 0, 4, 1)),
-  'd': scope.int(hyperopt.hp.quniform('d', 0, 2, 1)),
-  'q': scope.int(hyperopt.hp.quniform('q', 0, 4, 1)) 
-}
+#space = {
+#  'p': scope.int(hyperopt.hp.quniform('p', 0, 4, 1)),
+#  'd': scope.int(hyperopt.hp.quniform('d', 0, 2, 1)),
+#  'q': scope.int(hyperopt.hp.quniform('q', 0, 4, 1)) 
+#}
 
 # COMMAND ----------
 
@@ -304,27 +308,78 @@ space = {
 
 # COMMAND ----------
 
-rstate = np.random.default_rng(123)
+#username_friendly = 'default_user'; rstate = np.random.default_rng(123)#
+#
+#with mlflow.start_run(run_name=f'{username_friendly}_test_sa'):
+#  argmin = fmin(
+#    fn=evaluate_model,
+#    space=space,
+#    algo=tpe.suggest,  # algorithm controlling how hyperopt navigates the search space
+#    max_evals=10,
+#    trials=None,
+ #   rstate=rstate,
+ #   verbose=False
+ #   )
 
-with mlflow.start_run(run_name=f'{username_friendly}_test_sa'):
-  argmin = fmin(
-    fn=evaluate_model,
-    space=space,
-    algo=tpe.suggest,  # algorithm controlling how hyperopt navigates the search space
-    max_evals=10,
-    trials=SparkTrials(parallelism=1),
-    rstate=rstate,
-    verbose=False
+# COMMAND ----------
+
+#%pip install ray[tune]
+
+import ray
+from ray import tune
+from ray.tune.search.hyperopt import HyperOptSearch
+import mlflow
+
+# Define the search space
+space = {
+  'p': tune.randint(0, 5),
+  'd': tune.randint(0, 3),
+  'q': tune.randint(0, 5)
+}
+
+# COMMAND ----------
+
+def evaluate_model(config):
+    try:
+        order_parameters = (config["p"], config["d"], config["q"])
+
+        # For simplicity in this example, assume no seasonality
+        model1 = SARIMAX(train, exog=train_exo, order=order_parameters, seasonal_order=(0, 0, 0, 0))
+        fit1 = model1.fit(disp=False)
+        fcast1 = fit1.predict(start=min(score_exo.index), end=max(score_exo.index), exog=score_exo)
+        mse = np.power(score.to_numpy() - fcast1.to_numpy(), 2).mean()
+        return {"mse": mse}
+    except Exception as e:
+        print(f"Error in evaluate_model: {e}")
+        return {"mse": float('inf')}
+
+# Initialize Ray
+ray.init()
+
+# Start the hyperparameter tuning
+with mlflow.start_run(run_name=f'maxkoehler_test_sa'):
+    analysis = tune.run(
+        evaluate_model,
+        config=space,
+        search_alg=HyperOptSearch(
+            metric="mse",
+            mode="min"
+        ),
+        num_samples=10,
+        verbose=1
     )
 
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC By this means the optimal set of parameters can be found.
+# Shutdown Ray
+ray.shutdown()
 
 # COMMAND ----------
 
-displayHTML(f"The optimal parameters for the selected series with SKU '{pdf.SKU.iloc[0]}' are: d = '{argmin.get('d')}', p = '{argmin.get('p')}' and q = '{argmin.get('q')}'")
+best_config = analysis.get_best_config(metric="mse", mode="min")
+print("Best hyperparameters: ", best_config)
+
+# COMMAND ----------
+
+tuple(best_config.values())
 
 # COMMAND ----------
 
@@ -334,7 +389,7 @@ displayHTML(f"The optimal parameters for the selected series with SKU '{pdf.SKU.
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC ## Train thousands of models at scale
 # MAGIC *while still using your preferred libraries and approaches*
 
@@ -398,20 +453,20 @@ display(enriched_df)
 # COMMAND ----------
 
 # MAGIC %md 
-# MAGIC 
+# MAGIC
 # MAGIC ### Solution: High-Level Overview
-# MAGIC 
+# MAGIC
 # MAGIC Benefits:
 # MAGIC - Pure Python & Pandas: easy to develop, test
 # MAGIC - Continue using your favorite libraries
 # MAGIC - Simply assume you're working with a Pandas DataFrame for a single SKU
-# MAGIC 
+# MAGIC
 # MAGIC <img src="https://github.com/PawaritL/data-ai-world-tour-dsml-jan-2022/blob/main/pandas-udf-workflow.png?raw=true" width=40%>
 
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC #### Build, tune and score a model per each SKU with Pandas UDFs
 
 # COMMAND ----------
@@ -426,60 +481,82 @@ def build_tune_and_score_model(sku_pdf: pd.DataFrame) -> pd.DataFrame:
   
   print(complete_ts)
   
-
   # Since we'll group the large Spark DataFrame by (Product, SKU)
   PRODUCT = sku_pdf["Product"].iloc[0]
   SKU = sku_pdf["SKU"].iloc[0]
   train_data, validation_data = split_train_score_data(complete_ts)
   exo_fields = ["covid", "christmas", "new_year"]
 
+  # Evaluate model on the training data set
+  def evaluate_model(config):
+    try:
+      order_parameters = (config["p"], config["d"], config["q"])
 
-  # Evaluate model on the traing data set
-  def evaluate_model(hyperopt_params):
+      # SARIMAX requires a tuple of Python integers
+      order_hparams = tuple([int(config[k]) for k in ("p", "d", "q")])
 
-        # SARIMAX requires a tuple of Python integers
-        order_hparams = tuple([int(hyperopt_params[k]) for k in ("p", "d", "q")])
+      # Training
+      model = SARIMAX(
+        train_data["Demand"], 
+        exog=train_data[exo_fields], 
+        order=order_hparams, 
+        seasonal_order=(0, 0, 0, 0), # assume no seasonality in our example
+        initialization_method="estimated",
+        enforce_stationarity=False,
+        enforce_invertibility=False
+      )
+      fitted_model = model.fit(disp=False, method='nm')
 
-        # Training
-        model = SARIMAX(
-          train_data["Demand"], 
-          exog=train_data[exo_fields], 
-          order=order_hparams, 
-          seasonal_order=(0, 0, 0, 0), # assume no seasonality in our example
-          initialization_method="estimated",
-          enforce_stationarity = False,
-          enforce_invertibility = False
-        )
-        fitted_model = model.fit(disp=False, method='nm')
+      # Validation
+      fcast = fitted_model.predict(
+        start=validation_data.index.min(), 
+        end=validation_data.index.max(), 
+        exog=validation_data[exo_fields]
+      )
 
-        # Validation
-        fcast = fitted_model.predict(
-          start=validation_data.index.min(), 
-          end=validation_data.index.max(), 
-          exog=validation_data[exo_fields]
-        )
+      mse = np.power(validation_data["Demand"].to_numpy() - fcast.to_numpy(), 2).mean()
+      return {"mse": mse}
+    
+    except Exception as e:
+      print(f"Error in evaluate_model: {e}")
+      return {"mse": float('inf')}
+       
+  #search_space = {
+  #'p': tune.randint(0, 5),
+  #'d': tune.randint(0, 3),
+  #'q': tune.randint(0, 5)
+  #}
 
-        return {'status': hyperopt.STATUS_OK, 'loss': np.power(validation_data.Demand.to_numpy() - fcast.to_numpy(), 2).mean()}
+  #ray.init()
 
-  search_space = {
-      'p': scope.int(hyperopt.hp.quniform('p', 0, 4, 1)),
-      'd': scope.int(hyperopt.hp.quniform('d', 0, 2, 1)),
-      'q': scope.int(hyperopt.hp.quniform('q', 0, 4, 1)) 
-    }
+  # Start the hyperparameter tuning
+  #with mlflow.start_run(run_name=f'maxkoehler_test_sa'):
+  #  analysis = tune.run(
+  #    evaluate_model,
+  #    config=search_space,
+  #    search_alg=HyperOptSearch(
+  #      metric="mse",
+  #      mode="min"
+  #    ),
+  #    num_samples=2,
+  #    verbose=1
+  #  )
 
-  rstate = np.random.default_rng(123) # just for reproducibility of this notebook
+  # Shutdown Ray
+  #ray.shutdown()
 
-  best_hparams = fmin(evaluate_model, search_space, algo=tpe.suggest, max_evals=10)
+  #best_config = analysis.get_best_config(metric="mse", mode="min")
+  best_config = {'p': 2, 'd': 2, 'q': 1}
 
   # Training
   model_final = SARIMAX(
     train_data["Demand"], 
     exog=train_data[exo_fields], 
-    order=tuple(best_hparams.values()), 
+    order=tuple(best_config.values()), 
     seasonal_order=(0, 0, 0, 0), # assume no seasonality in our example
     initialization_method="estimated",
-    enforce_stationarity = False,
-     enforce_invertibility = False
+    enforce_stationarity=False,
+    enforce_invertibility=False
   )
   fitted_model_final = model_final.fit(disp=False, method='nm')
 
@@ -490,9 +567,8 @@ def build_tune_and_score_model(sku_pdf: pd.DataFrame) -> pd.DataFrame:
     exog=validation_data[exo_fields]
   )
 
-  forecast_series = complete_ts[['Product', 'SKU' , 'Demand']].assign(Date = complete_ts.index.values).assign(Demand_Fitted = fcast)
-    
-  forecast_series = forecast_series[['Product', 'SKU' , 'Date', 'Demand', 'Demand_Fitted']]
+  forecast_series = complete_ts[['Product', 'SKU', 'Demand']].assign(Date=complete_ts.index.values).assign(Demand_Fitted=fcast)
+  forecast_series = forecast_series[['Product', 'SKU', 'Date', 'Demand', 'Demand_Fitted']]
   
   return forecast_series
 
@@ -511,7 +587,7 @@ tuning_schema = StructType(
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC 
+# MAGIC
 # MAGIC #### Run distributed processing: `groupBy("SKU")` + `applyInPandas(...)`
 
 # COMMAND ----------
@@ -530,27 +606,8 @@ display(forecast_df)
 
 # COMMAND ----------
 
-forecast_df_delta_path = os.path.join(cloud_storage_path, 'forecast_df_delta')
+forecast_df.write.mode("overwrite").saveAsTable("part_level_demand_with_forecasts")
 
 # COMMAND ----------
 
-# Write the data 
-forecast_df.write \
-.mode("overwrite") \
-.format("delta") \
-.save(forecast_df_delta_path)
-
-# COMMAND ----------
-
-spark.sql(f"DROP TABLE IF EXISTS {dbName}.part_level_demand_with_forecasts")
-spark.sql(f"CREATE TABLE {dbName}.part_level_demand_with_forecasts USING DELTA LOCATION '{forecast_df_delta_path}'")
-
-# COMMAND ----------
-
-display(spark.sql(f"SELECT * FROM {dbName}.part_level_demand_with_forecasts"))
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC ## Analyze the SKU demand
-# MAGIC You can analyze the SKU demand using Databricks' simple dashboard functionality. See   [here](https://e2-demo-field-eng.cloud.databricks.com/sql/dashboards/fa660958-35a9-4710-a393-b050dd59275a-demand-analysis?edit&o=1444828305810485&p_w27bd4a0b-88a2-422a-bda5-9363bb3e7921_sku_parameter=%5B%22LRR_0X6CLF%22%5D&p_w6280d39b-f9b1-4644-b80c-caf98965b76e_sku_parameter=%5B%22LRR_0X6CLF%22%2C%22SRL_Z61857%22%5D).
+display(spark.sql(f"SELECT * FROM part_level_demand_with_forecasts"))
