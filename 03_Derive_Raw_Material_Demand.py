@@ -145,6 +145,39 @@ g = GraphFrame(vertices, edges)
 
 # COMMAND ----------
 
+import matplotlib.pyplot as plt
+
+def PlotGraph(graph_frame):
+  G = nx.DiGraph()
+
+  # Add nodes and edges
+  for _, row in graph_frame.vertices.toPandas().iterrows():
+    G.add_node(row['id'])
+
+  for _, row in graph_frame.edges.toPandas().iterrows():
+    G.add_edge(row['src'], row['dst'], label=row['qty'])
+
+  # Draw the graph
+  #pos = nx.spring_layout(G)  # Layout for positioning nodes
+  pos = {
+    "Raw1": (0, 0),
+    "Intermediate1": (1.5, 0),
+    "Intermediate2": (3, 0),
+    "FinishedProduct": (4, 0.5),
+    "SKU": (5,0.5),
+    "Intermediate3": (3, 1),
+    "Raw2": (0, 1)
+  }
+  nx.draw(G, pos, with_labels=True, node_color="lightblue", edge_color="gray")
+  nx.draw_networkx_edge_labels(G, pos, edge_labels=nx.get_edge_attributes(G, 'label'))
+  plt.show()
+
+# COMMAND ----------
+
+PlotGraph(g)
+
+# COMMAND ----------
+
 # MAGIC %md
 # MAGIC ### Step 1
 # MAGIC The following function uses the concept of aggrgated messaging to derive a table that maps the raw for each SKU. 
@@ -370,7 +403,98 @@ display(aggregated_bom)
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ## New Solution using Pyspark
+
+# COMMAND ----------
+
+from pyspark.sql.functions import col, max
+
+# COMMAND ----------
+
+# Initialize the DataFrame with the anchor
+bom_traversal_df = edges.filter(edges.dst == "SKU").selectExpr("dst as component", "qty as total_qty")
+
+# Perform the recursive traversal
+while True:
+    # Join the current traversal with the edges to get the next level
+    next_level_df = bom_traversal_df.alias("bom").join(
+        edges.alias("edges"),
+        bom_traversal_df.component == edges.dst, how="left"
+    ).selectExpr(
+        "edges.src as component",
+        "bom.total_qty * edges.qty as total_qty"
+    )
+    
+    # Check if component is raw material
+    if next_level_df.select("component").join(edges.select("dst").distinct(), next_level_df.component == edges.dst, "left_anti").count() >= edges.select("src").join(edges.select("dst").distinct(), edges.src == edges.dst, "left_anti").count():
+        bom_traversal_df = bom_traversal_df.union(next_level_df)
+        break
+    
+    # Union the new level with the current traversal
+    #bom_traversal_df = bom_traversal_df.union(next_level_df)
+    bom_traversal_df = next_level_df
+
+result_df = edges.select("src").join(edges.select("dst").distinct(), edges.src == edges.dst, "left_anti").join(bom_traversal_df, edges.src == bom_traversal_df.component, "left").select("src", "total_qty").groupBy("src").agg(max("total_qty").alias("total_qty"))
+# Display the result
+display(result_df)
+
+# COMMAND ----------
+
+# Initialize the DataFrame with the anchor
+bom_traversal_df = edges.filter(edges.dst == "SKU").selectExpr("dst as component", "qty as total_qty")
+
+# Perform the recursive traversal
+while True:
+    # Join the current traversal with the edges to get the next level
+    next_level_df = bom_traversal_df.alias("bom").join(
+        edges.alias("edges"),
+        bom_traversal_df.component == edges.dst, how="inner"
+    ).selectExpr(
+        "edges.src as component",
+        "bom.total_qty * edges.qty as total_qty"
+    )
+    
+    # Check if component is raw material
+    if next_level_df.select("component").join(edges.select("dst").distinct(), next_level_df.component == edges.dst, "left_anti").count() >= edges.select("src").join(edges.select("dst").distinct(), edges.src == edges.dst, "left_anti").count():
+        bom_traversal_df = bom_traversal_df.union(next_level_df)
+        break
+    
+    # Union the new level with the current traversal
+    #bom_traversal_df = bom_traversal_df.union(next_level_df)
+    bom_traversal_df = next_level_df
+
+result_df = edges.select("src").join(edges.select("dst").distinct(), edges.src == edges.dst, "left_anti").join(bom_traversal_df, edges.src == bom_traversal_df.component, "left").select("src", "total_qty").groupBy("src").agg(max("total_qty").alias("total_qty"))
+# Display the result
+display(result_df)
+
+# COMMAND ----------
+
+G_nx = nx.DiGraph()
+G_nx.add_nodes_from(g.vertices.collect())
+for e in g.edges.collect():
+  G_nx.add_edge(e['src'], e['dst'], label=e['label'])
+
+# COMMAND ----------
+
+S = [G_nx.subgraph(c).copy() for c in nx.weakly_connected_components(G_nx)]
+
+# COMMAND ----------
+
+for graphs in S:
+  pos = nx.spring_layout(graphs)  # Layout for positioning nodes
+  nx.draw(graphs, pos, with_labels=True, node_color="lightblue", edge_color="gray")
+  nx.draw_networkx_edge_labels(graphs, pos, edge_labels=nx.get_edge_attributes(g, 'label'))
+  plt.show()
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ## We now apply the concept on the forecasted demand data set
+
+# COMMAND ----------
+
+spark.sql("USE CATALOG `patrickzier_demos`")
+spark.sql("USE SCHEMA `demand_db")
 
 # COMMAND ----------
 

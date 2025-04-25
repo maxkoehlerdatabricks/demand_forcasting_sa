@@ -75,3 +75,7 @@ demand_df = spark.read.table(f"part_level_demand")
 # COMMAND ----------
 
 display(demand_df.select("Product").dropDuplicates())
+
+# COMMAND ----------
+
+
