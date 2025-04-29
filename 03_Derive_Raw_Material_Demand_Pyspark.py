@@ -82,6 +82,8 @@ edges = spark.createDataFrame([
                                ('Intermediate2', 'FinishedProduct', 1),
                                ('Raw2', 'Intermediate3', 5),
                                ('Intermediate3', 'FinishedProduct', 1),
+                               ('Raw3', 'FinishedProduct', 3), #remove again
+                               ('Raw1', 'FinishedProduct', 4), #remove again
                                ('FinishedProduct', 'SKU', 1) 
                               ],
                               ['src', 'dst', 'qty'])
@@ -107,7 +109,7 @@ edges = spark.createDataFrame([
 # COMMAND ----------
 
 def get_skus(edges):
-  skus_df = edges.alias("e1").join(edges.alias("e2").select("src").distinct(), f.col("e1.dst") == f.col("e2.src"), "left_anti").selectExpr("dst as component", "qty as total_qty", "dst as sku")
+  skus_df = edges.alias("e1").join(edges.alias("e2").select("src").distinct(), f.col("e1.dst") == f.col("e2.src"), "left_anti").selectExpr("dst as component", "qty as total_qty", "dst as sku").distinct() 
   return skus_df              
 
 # COMMAND ----------
@@ -119,7 +121,7 @@ display(skus_df)
 # COMMAND ----------
 
 def get_raw_materials(edges):
-  raw_df = edges.alias("e1").select("src").join(edges.alias("e2").select("dst").distinct(), f.col("e1.src") == f.col("e2.dst"), "left_anti")
+  raw_df = edges.alias("e1").select("src").join(edges.alias("e2").select("dst").distinct(), f.col("e1.src") == f.col("e2.dst"), "left_anti").distinct()
   return raw_df
 
 
@@ -135,16 +137,15 @@ def get_raws_for_skus(skus_df, edges, raw_df):
   bom_traversal_df = skus_df
 
   while True:
-    next_level_df = bom_traversal_df.alias("bom").join(edges.alias("edges"), bom_traversal_df.component == edges.dst, "left").selectExpr("edges.src as component", "bom.total_qty * edges.qty as total_qty", "sku")
+    bom_traversal_df = bom_traversal_df.alias("bom").join(edges.alias("edges"), bom_traversal_df.component == edges.dst, "left").selectExpr("edges.src as component", "bom.total_qty * edges.qty as total_qty", "sku")
 
-    if next_level_df.select("component").join(edges.select("dst").distinct(), next_level_df.component == edges.dst, "left_anti").count() >= raw_df.count():
-      bom_traversal_df = bom_traversal_df.union(next_level_df)
+    if bom_traversal_df.where(f.col("component").isNotNull()).count() == 0:
       break
-    
-    bom_traversal_df = next_level_df
 
+    skus_df = skus_df.union(bom_traversal_df)
   # filter skus_df to only include raw materials
-  result_df = raw_df.join(bom_traversal_df, raw_df.src == bom_traversal_df.component, "left").select(f.col("sku").alias("SKU"), f.col("src").alias("RAW"), f.col("total_qty").alias("QTY_RAW")).groupBy("SKU", "RAW").agg(f.max("QTY_RAW").alias("QTY_RAW")).orderBy("SKU",f.col("QTY_RAW").desc())
+  raw_marterials = [row.src for row in raw_df.select("src").collect()]
+  result_df = skus_df.filter(f.col("component").isin(raw_marterials)).select(f.col("sku").alias("SKU"), f.col("component").alias("RAW"), f.col("total_qty").alias("QTY_RAW")).groupBy("SKU", "RAW").agg(f.sum("QTY_RAW").alias("QTY_RAW")).orderBy("SKU",f.col("QTY_RAW").desc())
   return result_df
 
 # COMMAND ----------
