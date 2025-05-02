@@ -58,9 +58,9 @@ from statsmodels.tsa.api import ExponentialSmoothing, SimpleExpSmoothing, Holt
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
 import mlflow
-#import hyperopt
-#from hyperopt import hp, fmin, tpe, SparkTrials, STATUS_OK, space_eval
-#from hyperopt.pyll.base import scope
+import hyperopt
+from hyperopt import hp, fmin, tpe, SparkTrials, STATUS_OK, space_eval
+from hyperopt.pyll.base import scope
 mlflow.autolog(disable=True)
 
 from statsmodels.tsa.api import Holt
@@ -84,7 +84,7 @@ from pyspark.sql.types import *
 
 # COMMAND ----------
 
-demand_df = spark.read.table(f"patrickzier_demos.demand_db.part_level_demand") #Change back to only tablename
+demand_df = spark.read.table(f"part_level_demand")
 demand_df = demand_df.cache() # just for this example notebook
 
 # COMMAND ----------
@@ -419,7 +419,7 @@ enriched_schema = StructType(
     StructField('Date', DateType()),
     StructField('Product', StringType()),
     StructField('SKU', StringType()),
-    StructField('Demand', IntegerType()),
+    StructField('Demand', FloatType()),
     StructField('covid', FloatType()),
     StructField('christmas', FloatType()),
     StructField('new_year', FloatType()),
@@ -567,7 +567,7 @@ def build_tune_and_score_model(sku_pdf: pd.DataFrame) -> pd.DataFrame:
     exog=validation_data[exo_fields]
   )
 
-  forecast_series = complete_ts[['Product', 'SKU', 'Demand']].assign(Date=complete_ts.index.values).assign(Demand_Fitted=fcast.astype(int))
+  forecast_series = complete_ts[['Product', 'SKU', 'Demand']].assign(Date=complete_ts.index.values).assign(Demand_Fitted=fcast)
   forecast_series = forecast_series[['Product', 'SKU', 'Date', 'Demand', 'Demand_Fitted']]
   
   return forecast_series
@@ -579,8 +579,8 @@ tuning_schema = StructType(
     StructField('Product', StringType()),
     StructField('SKU', StringType()),
     StructField('Date', DateType()),
-    StructField('Demand', IntegerType()),
-    StructField('Demand_Fitted', IntegerType())
+    StructField('Demand', FloatType()),
+    StructField('Demand_Fitted', FloatType())
   ]
 )
 
@@ -606,8 +606,8 @@ display(forecast_df)
 
 # COMMAND ----------
 
-forecast_df.write.mode("overwrite").saveAsTable("patrickzier_demos.demand_db.part_level_demand_with_forecasts") 
+forecast_df.write.mode("overwrite").saveAsTable("part_level_demand_with_forecasts")
 
 # COMMAND ----------
 
-display(spark.sql(f"SELECT * FROM patrickzier_demos.demand_db.part_level_demand_with_forecasts"))
+display(spark.sql(f"SELECT * FROM part_level_demand_with_forecasts"))
