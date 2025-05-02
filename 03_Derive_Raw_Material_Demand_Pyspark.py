@@ -82,8 +82,6 @@ edges = spark.createDataFrame([
                                ('Intermediate2', 'FinishedProduct', 1),
                                ('Raw2', 'Intermediate3', 5),
                                ('Intermediate3', 'FinishedProduct', 1),
-                               ('Raw3', 'FinishedProduct', 3), #remove again
-                               ('Raw1', 'FinishedProduct', 4), #remove again
                                ('FinishedProduct', 'SKU', 1) 
                               ],
                               ['src', 'dst', 'qty'])
@@ -160,9 +158,9 @@ display(result_df)
 
 # COMMAND ----------
 
-demand_df = spark.read.table(f"patrickzier_demos.demand_db.part_level_demand_with_forecasts")
-sku_mapper = spark.read.table(f"patrickzier_demos.demand_db.sku_mapper")
-bom = spark.read.table(f"patrickzier_demos.demand_db.bom")
+demand_df = spark.read.table(f"part_level_demand_with_forecasts")
+sku_mapper = spark.read.table(f"sku_mapper")
+bom = spark.read.table(f"{dbName}.bom")
 
 # COMMAND ----------
 
@@ -189,7 +187,7 @@ display(sku_mapper)
 
 # COMMAND ----------
 
-display(spark.sql(f"select distinct SKU from patrickzier_demos.demand_db.part_level_demand_with_forecasts"))
+display(spark.sql(f"select distinct SKU from part_level_demand_with_forecasts"))
 
 # COMMAND ----------
 
@@ -239,4 +237,4 @@ display(demand_raw_df)
 
 # COMMAND ----------
 
-demand_raw_df.write.mode("overwrite").saveAsTable("patrickzier_demos.demand_db.forecast_raw")
+demand_raw_df.write.mode("overwrite").saveAsTable("forecast_raw")
