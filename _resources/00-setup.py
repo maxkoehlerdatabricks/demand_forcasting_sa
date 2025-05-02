@@ -4,9 +4,9 @@
 
 # COMMAND ----------
 
-dbutils.widgets.dropdown('reset_all_data', 'false', ['true', 'false'], 'Reset all data')
-dbutils.widgets.text('catalogName',  'maxkoehler_demos' , 'Catalog Name')
-dbutils.widgets.text('dbName',  'demand_db' , 'Database Name')
+#dbutils.widgets.dropdown('reset_all_data', 'false', ['true', 'false'], 'Reset all data')
+#dbutils.widgets.text('catalogName',  'maxkoehler_demos' , 'Catalog Name')
+#dbutils.widgets.text('dbName',  'demand_db' , 'Database Name')
 
 # COMMAND ----------
 
@@ -56,7 +56,9 @@ def generate_data():
 # COMMAND ----------
 
 if reset_all_data:
+  print("Generating data...")
   generate_data()
+  print("Data generated.")
 
 # COMMAND ----------
 
