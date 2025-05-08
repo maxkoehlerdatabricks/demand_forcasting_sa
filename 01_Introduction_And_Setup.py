@@ -70,7 +70,7 @@ reset_all_data = dbutils.widgets.get('reset_all_data') == 'true'
 
 # COMMAND ----------
 
-demand_df = spark.read.table(f"part_level_demand")
+demand_df = spark.read.table(f"{catalogName}.{dbName}.part_level_demand")
 
 # COMMAND ----------
 
