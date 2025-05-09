@@ -165,7 +165,7 @@ display(forecasts)
 
 # COMMAND ----------
 
-result_df = demand_df.join(forecasts.select(forecasts['ds'].cast('date').alias('Date'), col('yhat').alias('Demand_Fitted'),'SKU'), on=['Date', 'SKU'], how='left')
+result_df = demand_df.join(forecasts.select(forecasts['ds'].cast('date').alias('Date'), col('yhat').alias('Demand_Fitted'),'SKU'), on=['Date', 'SKU'], how='right')
 display(result_df)
 
 # COMMAND ----------

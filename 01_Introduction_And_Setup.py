@@ -57,6 +57,11 @@ reset_all_data = dbutils.widgets.get('reset_all_data') == 'true'
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC **⚠️ Needs to be run using ML Runtime due to use of MLFlow**
+
+# COMMAND ----------
+
 # MAGIC %run ./_resources/00-setup $reset_all_data=$reset_all_data $catalogName=$catalogName $dbName=$dbName
 
 # COMMAND ----------

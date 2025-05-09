@@ -1,5 +1,64 @@
 # Databricks notebook source
 # MAGIC %md
+# MAGIC # What is Databricks on SAP Business Data Cloud (BDC)?
+# MAGIC
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC `SAP Databricks`, is a customized offering that integrates Databricks' data science, SQL serverless, and AI/ML features into the BDC. It is particularly used by those customers that are transitioning their ERP and BW functionalities to the cloud under the "SAP RISE" initiative. A main component is that SAP provides managed data products stored in HANA Data Lake Files, which can then be shared to SAP Databricks or native Databricks using Delta Sharing. At the moment of writing this, only a few managed data products are available. However, there is a strong roadmap to extend.
+# MAGIC
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/main/Pictures/SAP_BDC_Components.png" width="1500"/>
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # What is the Bill of Material?
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC A Bill of Materials (BoM) table in SAP is a fundamental component used in various manufacturing and supply chain processes. It defines the components, quantities, and structure needed to produce a finished product. It lists all raw materials and parts required for the production of finished products. Each entry typically includes attributes such as material number, description, and quantity. BoMs can have multiple levels, indicating nested relationships where raw materials can consist of subassemblies. This hierarchical setup aids in understanding how individual components contribute to the final manufactured item.
+# MAGIC
+# MAGIC The BoM is utilized in various processes that include inventory management, production planning, and purchasing. In this article, it serves as a reference for calculating material requirements based on demand forecasts.
+# MAGIC
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # How does the Bill of Material Table in this solution accelerator look like?
+# MAGIC
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC In our example the Bill of Material table consists of all raw materials that a final or intermediate material number consists of, along with related quantities. 
+# MAGIC
+
+# COMMAND ----------
+
+dbutils.widgets.dropdown('reset_all_data', 'false', ['true', 'false'], 'Reset all data')
+dbutils.widgets.text('catalogName',  'maxkoehler_demos' , 'Catalog Name')
+dbutils.widgets.text('dbName',  'demand_db' , 'Database Name')
+
+# COMMAND ----------
+
+catalogName = dbutils.widgets.get('catalogName')
+dbName = dbutils.widgets.get('dbName')
+reset_all_data = dbutils.widgets.get('reset_all_data') == 'true'
+
+# COMMAND ----------
+
+bom_df = spark.read.table(f"{catalogName}.{dbName}.bom")
+bom_df.display()
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC # Map the forecasted demand to raw materials
 # MAGIC Traversing the manufacturing value chain backwards to find out how much raw material is needed to produce the forecasted number of products
 
@@ -42,18 +101,6 @@
 #  
 ##print(cloud_storage_path)
 print(dbName)
-
-# COMMAND ----------
-
-dbutils.widgets.dropdown('reset_all_data', 'false', ['true', 'false'], 'Reset all data')
-dbutils.widgets.text('catalogName',  'maxkoehler_demos' , 'Catalog Name')
-dbutils.widgets.text('dbName',  'demand_db' , 'Database Name')
-
-# COMMAND ----------
-
-catalogName = dbutils.widgets.get('catalogName')
-dbName = dbutils.widgets.get('dbName')
-reset_all_data = dbutils.widgets.get('reset_all_data') == 'true'
 
 # COMMAND ----------
 
@@ -158,9 +205,9 @@ display(result_df)
 
 # COMMAND ----------
 
-demand_df = spark.read.table(f"part_level_demand_with_forecasts")
-sku_mapper = spark.read.table(f"sku_mapper")
-bom = spark.read.table(f"{dbName}.bom")
+demand_df = spark.read.table(f"{catalogName}.{dbName}.part_level_demand_with_forecasts")
+sku_mapper = spark.read.table(f"{catalogName}.{dbName}.sku_mapper")
+bom = spark.read.table(f"{catalogName}.{dbName}.bom")
 
 # COMMAND ----------
 
@@ -237,4 +284,4 @@ display(demand_raw_df)
 
 # COMMAND ----------
 
-demand_raw_df.write.mode("overwrite").saveAsTable("forecast_raw")
+demand_raw_df.write.mode("overwrite").saveAsTable(f"{catalogName}.{dbName}.forecast_raw")
