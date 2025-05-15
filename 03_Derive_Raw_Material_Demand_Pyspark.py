@@ -211,9 +211,7 @@ bom = spark.read.table(f"{catalogName}.{dbName}.bom")
 
 # COMMAND ----------
 
-demand_df = (demand_df.
-        withColumn("Demand", f.col("Demand_Fitted")).
-        select(f.col("Product"), f.col("SKU"), f.col("Date"), f.col("Demand")))
+demand_df = (demand_df.select(f.col("Product"), f.col("SKU"), f.col("Date"), f.col("Demand")))
 
 # COMMAND ----------
 
