@@ -29,7 +29,7 @@
 # MAGIC
 # MAGIC In this solution accelerator we demonstrate
 # MAGIC - How to effectively scale demand forecasting for thousands of SKU's using ai_forecast()
-# MAGIC - How to leverage SAP data to pull Bill of Material tables to then translate the forecasted SKU level demand to the desired raw material demand. In this section we will use Recursive Common Table Expressions (CTEs)
+# MAGIC - How to leverage SAP data to pull Bill of Material tables to then translate the forecasted SKU level demand to the desired raw material demand. In this section we will use Recursive Common Table Expressions (CTEs) for the BoM resolution
 # MAGIC - How manage supplier shortages by optimizing the raw material inventory and providing transparency of what can delivered to the end customer. In this section we will use Delta Live Tables
 # MAGIC - How to allow non technical staff from you purchasing, ptoduction or logistics consume by leveraging a conversaational experience instead of code. in this section we will use AI/BI Dashboards and Genie. 
 
