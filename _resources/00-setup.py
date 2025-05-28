@@ -1,12 +1,12 @@
 # Databricks notebook source
-# MAGIC %pip install databricks-sdk --upgrade
-# MAGIC dbutils.library.restartPython()
+#%pip install databricks-sdk --upgrade
+#dbutils.library.restartPython()
 
 # COMMAND ----------
 
-#dbutils.widgets.dropdown('reset_all_data', 'false', ['true', 'false'], 'Reset all data')
-#dbutils.widgets.text('catalogName',  'maxkoehler_demos' , 'Catalog Name')
-#dbutils.widgets.text('dbName',  'demand_db' , 'Database Name')
+dbutils.widgets.dropdown('reset_all_data', 'false', ['true', 'false'], 'Reset all data')
+dbutils.widgets.text('catalogName',  'maxkoehler_demos' , 'Catalog Name')
+dbutils.widgets.text('dbName',  'demand_db' , 'Database Name')
 
 # COMMAND ----------
 
@@ -18,7 +18,7 @@ reset_all_data = dbutils.widgets.get('reset_all_data') == 'true'
 
 import os
 import re 
-import mlflow
+#import mlflow
 
 # COMMAND ----------
 
