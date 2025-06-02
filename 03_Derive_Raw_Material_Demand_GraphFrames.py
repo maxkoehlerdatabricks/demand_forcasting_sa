@@ -8,11 +8,10 @@
 # MAGIC %md
 # MAGIC *Prerequisite: Make sure to run 01_Introduction_And_Setup and 02_Fine_Grained_Demand_Forecasting before running this notebook.*
 # MAGIC
-# MAGIC While the previous notebook *(002_Fine_Grained_Demand_Forecasting)* demonstrated the benefits of one of the Databricks' approach to train multiple models in parallel with great speed and cost-effectiveness,
-# MAGIC in this part we show how to use Databricks' graph functionality to traverse the manufacturing value chain to find out how much raw material is needed for production.
+# MAGIC While the previous notebook *(02_Fine_Grained_Demand_Forecasting)* demonstrated the benefits using Databricks for forecasting with great speed and cost-effectiveness, in this part we show how to use Databricks' graph functionality to traverse the manufacturing value chain to find out how much raw material is needed for production.
 # MAGIC
 # MAGIC Key highlights for this notebook:
-# MAGIC - Solve large scale graph problems by using GraphX as a distributed graph processing framework on top of Apache Spark
+# MAGIC - Solve large scale graph problems by using GraphFrames as a distributed graph processing framework on top of Apache Spark
 # MAGIC - Leverage the full support for property graphs to incorporate business knowlegde and the traverse the manufacturing value chain 
 
 # COMMAND ----------
@@ -24,24 +23,6 @@
 
 # MAGIC %md
 # MAGIC Once the demand is forecasted, manufacturers need to purchase raw material and initiate production planning. This notebook shows how to translate future demand into raw materials. More precisely, we will do a Bill of Material (BoM) resolution to map the forecasted demand for each SKU to the appropriate demand of raw materials that are needed to produce the finished good that is mapped to the SKU.
-
-# COMMAND ----------
-
-#If True, all output files are in user specific databases, If False, a global database for the report is used
-#user_based_data = True
-
-# COMMAND ----------
-
-#%run ./_resources_outside/00-global-setup $reset_all_data=false $db_prefix=demand_level_forecasting
-
-# COMMAND ----------
-
-#if (not user_based_data):
-#  cloud_storage_path = '/FileStore/tables/demand_forecasting_solution_accelerator/'
-#  dbName = 'demand_db' 
-#  
-##print(cloud_storage_path)
-print(dbName)
 
 # COMMAND ----------
 
@@ -381,7 +362,6 @@ bom = spark.read.table(f"{dbName}.bom")
 # COMMAND ----------
 
 demand_df = (demand_df.
-        withColumn("Demand", f.col("Demand_Fitted")).
         select(f.col("Product"), f.col("SKU"), f.col("Date"), f.col("Demand")))
 
 # COMMAND ----------
