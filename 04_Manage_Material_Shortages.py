@@ -77,7 +77,7 @@ dbutils.notebook.run(notebook_path, 600, {"catalogName" : catalogName,"dbName": 
 
 # COMMAND ----------
 
-display(spark.sql(f"select * from material_shortage"))
+display(spark.read.table(f"{catalogName}.{dbName}.material_shortage"))
 
 # COMMAND ----------
 
@@ -87,8 +87,8 @@ display(spark.sql(f"select * from material_shortage"))
 
 # COMMAND ----------
 
-demand_raw_df = spark.read.table(f"{dbName}.forecast_raw")
-material_shortage_df = spark.read.table(f"{dbName}.material_shortage")
+demand_raw_df = spark.read.table(f"{catalogName}.{dbName}.forecast_raw")
+material_shortage_df = spark.read.table(f"{catalogName}.{dbName}.material_shortage")
 
 # COMMAND ----------
 
