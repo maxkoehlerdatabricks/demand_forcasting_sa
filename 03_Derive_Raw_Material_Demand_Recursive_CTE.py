@@ -1,5 +1,14 @@
 # Databricks notebook source
 # MAGIC %md
+# MAGIC # Runs on DBR 17.0 
+
+# COMMAND ----------
+
+# MAGIC %run ./_resources/00-setup $reset_all_data=false $catalogName=$catalogName $dbName=$dbName 
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC # What is Databricks on SAP Business Data Cloud (BDC)?
 # MAGIC
 
@@ -84,10 +93,6 @@
 
 # MAGIC %md
 # MAGIC Once the demand is forecasted, manufacturers need to purchase raw material and initiate production planning. This notebook shows how to translate future demand into raw materials. More precisely, we will do a Bill of Material (BoM) resolution to map the forecasted demand for each SKU to the appropriate demand of raw materials that are needed to produce the finished good that is mapped to the SKU.
-
-# COMMAND ----------
-
-# MAGIC %run ./_resources/00-setup $reset_all_data=false $catalogName=$catalogName $dbName=$dbName 
 
 # COMMAND ----------
 
