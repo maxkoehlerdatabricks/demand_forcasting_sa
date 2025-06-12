@@ -1,5 +1,31 @@
 # Databricks notebook source
 # MAGIC %md
+# MAGIC This notebook should run on an DBR 17.0 cluster without ML
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC # Map the forecasted demand to raw materials
+# MAGIC
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC Once the demand is forecasted, manufacturers need to purchase raw material and initiate production planning. This notebook shows how to translate future SKU demand into raw materials planning. More precisely, we will do a Bill of Material (BoM) resolution to map the forecasted demand for each SKU to the appropriate demand of raw materials that are needed to produce the finished good that is mapped to the SKU.
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC *Prerequisite: Make sure to run 01_Introduction_And_Setup and 02_Fine_Grained_Demand_Forecasting_AI_Forecast before running this notebook.*
+# MAGIC
+# MAGIC While the previous notebook *(02_Fine_Grained_Demand_Forecasting_AI_Forecast)* demonstrated the benefits of Databricks' approach for forecasting with great speed and cost-effectiveness, in this part we show how to use Databricks' CTE functionality to traverse the manufacturing value chain backwards to find out how much raw material is needed for production.
+# MAGIC
+# MAGIC Key highlights for this notebook:
+# MAGIC - CTE's
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC # What is Databricks on SAP Business Data Cloud (BDC)?
 # MAGIC
 
@@ -30,6 +56,11 @@
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/operations_process_forwards.png" width="1500"/>
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC # How does the Bill of Material Table in this solution accelerator look like?
 # MAGIC
 
@@ -42,7 +73,7 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE WIDGET DROPDOWN reset_all_data DEFAULT 'FALSE' CHOICES (VALUES('TRUE'), ('FALSE'));
+# MAGIC CREATE WIDGET DROPDOWN reset_all_data DEFAULT 'FALSE' CHOICES ('TRUE', 'FALSE');
 # MAGIC CREATE WIDGET TEXT catalogName DEFAULT 'maxkoehler_demos';
 # MAGIC CREATE WIDGET TEXT dbName DEFAULT 'demand_db';
 
@@ -56,34 +87,6 @@
 
 # MAGIC %sql
 # MAGIC SELECT * FROM bom
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC # Map the forecasted demand to raw materials
-# MAGIC Traversing the manufacturing value chain backwards to find out how much raw material is needed to produce the forecasted number of products
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC *Prerequisite: Make sure to run 01_Introduction_And_Setup and 02_Fine_Grained_Demand_Forecasting before running this notebook.*
-# MAGIC
-# MAGIC While the previous notebook *(002_Fine_Grained_Demand_Forecasting)* demonstrated the benefits of one of the Databricks' approach to train multiple models in parallel with great speed and cost-effectiveness,
-# MAGIC in this part we show how to use Databricks' graph functionality to traverse the manufacturing value chain to find out how much raw material is needed for production.
-# MAGIC
-# MAGIC Key highlights for this notebook:
-# MAGIC - Solve large scale graph problems by using GraphX as a distributed graph processing framework on top of Apache Spark
-# MAGIC - Leverage the full support for property graphs to incorporate business knowlegde and the traverse the manufacturing value chain 
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/operations_process_forwards.png" width="1500"/>
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC Once the demand is forecasted, manufacturers need to purchase raw material and initiate production planning. This notebook shows how to translate future demand into raw materials. More precisely, we will do a Bill of Material (BoM) resolution to map the forecasted demand for each SKU to the appropriate demand of raw materials that are needed to produce the finished good that is mapped to the SKU.
 
 # COMMAND ----------
 

@@ -1,5 +1,10 @@
 # Databricks notebook source
 # MAGIC %md
+# MAGIC This notebook is tested on a an ML enabled cluster, DBR 17.0
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC
 # MAGIC # Introduction
 # MAGIC Demand forecasting is an integral business process for manufacturers. Manufacturers require accurate forecasts in order to:  
