@@ -7,21 +7,10 @@
 # MAGIC %md
 # MAGIC *Prerequisite: Make sure to run 01_Introduction_And_Setup before running this notebook.*
 # MAGIC
-# MAGIC In this notebook we first find an appropriate time series model and then apply that very same approach to train multiple models in parallel with great speed and cost-effectiveness.  
+# MAGIC In this notebook we use AutoML, or Automated Machine Learning. It simplifies the machine learning process by automatically identifying the best algorithms and hyperparameter configurations for specific datasets. Its main purpose is to make machine learning accessible to users with varying levels of expertise, allowing them to leverage the power of machine learning without extensive programming skills. 
 # MAGIC
 # MAGIC Key highlights for this notebook:
-# MAGIC - Use Databricks' collaborative and interactive notebook environment to find an appropriate time series mdoel
-# MAGIC - Pandas UDFs (user-defined functions) can take your single-node data science code, and distribute it across different keys (e.g. SKU)  
-# MAGIC - Hyperopt can also perform hyperparameter tuning from within a Pandas UDF  
-
-# COMMAND ----------
-
-#If True, all output files are in user specific databases, If False, a global database for the report is used
-#user_based_data = True
-
-# COMMAND ----------
-
-# %run ./_resources_outside/00-global-setup $reset_all_data=false $db_prefix=demand_level_forecasting
+# MAGIC - AutoML
 
 # COMMAND ----------
 
@@ -55,7 +44,6 @@ import databricks.automl
 import logging
 import mlflow.pyfunc
 from mlflow.tracking import MlflowClient
- 
 
 # COMMAND ----------
 
@@ -154,7 +142,7 @@ pyfunc_model = mlflow.pyfunc.load_model(model_uri)
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ##Use the model to make forecasts
+# MAGIC ##Use the model for forecasting
 # MAGIC Call the predict_timeseries model method to generate forecasts.
 # MAGIC In Databricks Runtime for Machine Learning 10.5 or above, you can set include_history=False to get the predicted data only.
 

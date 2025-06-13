@@ -1,5 +1,10 @@
 # Databricks notebook source
 # MAGIC %md
+# MAGIC This notebook is tested on a an ML enabled cluster, DBR 17.0
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC
 # MAGIC # Introduction
 # MAGIC Demand forecasting is an integral business process for manufacturers. Manufacturers require accurate forecasts in order to:  
@@ -26,17 +31,12 @@
 # MAGIC
 # MAGIC **Could statistical demand forecasting have predicted the aforementioned ‘force majeure’ events? 
 # MAGIC Certainly not! However, we think that Databricks offers an excellent platform to build large-scale forecasting solutions to help manufacturers maneuver through these challenges.**
-# MAGIC - Collaborative notebooks (in Python, R, SQL, Scala) can be used to explore, enrich, and visualize data from multiple sources while accommodating business knowledge and domain expertise
-# MAGIC - Modeling per each item (e.g. product, SKU, or part) can be parallelized, scaling to thousands of items
-# MAGIC - Tracking experiments using MLFlow ensures reproducibility, traceable performance metrics, and easy re-use.
 # MAGIC
-# MAGIC
-# MAGIC **In this solution accelerator, we will show-case the benefits of using Databricks on a simulated data set. We assume the role of a tier one automotive manufacturer producing advanced driver assistance systems. We will then proceed in three steps:**
-# MAGIC
-# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Demand_Forecasting_Intro.jpg" width=49%>
-# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Fine_Grained_Demand_Forecasting_Intro.jpg" width=49%>
-# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Derive_Raw_Material_Demand_Intro.jpg" width=49%>
-# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/max/Pictures/Manage_Material_Shortages_Intro.jpg" width=49%>
+# MAGIC In this solution accelerator we demonstrate
+# MAGIC - How to effectively scale demand forecasting for thousands of SKU's using ai_forecast()
+# MAGIC - How to leverage SAP data to pull Bill of Material tables to then translate the forecasted SKU level demand to the desired raw material demand. In this section we will use Recursive Common Table Expressions (CTEs) for the BoM resolution
+# MAGIC - How manage supplier shortages by optimizing the raw material inventory and providing transparency of what can delivered to the end customer. In this section we will use Delta Live Tables
+# MAGIC - How to allow non technical staff from you purchasing, ptoduction or logistics consume by leveraging a conversaational experience instead of code. in this section we will use AI/BI Dashboards and Genie. 
 
 # COMMAND ----------
 

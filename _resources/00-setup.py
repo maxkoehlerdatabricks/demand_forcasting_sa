@@ -1,6 +1,6 @@
 # Databricks notebook source
-# MAGIC %pip install databricks-sdk --upgrade
-# MAGIC dbutils.library.restartPython()
+#%pip install databricks-sdk --upgrade
+#dbutils.library.restartPython()
 
 # COMMAND ----------
 
@@ -18,7 +18,7 @@ reset_all_data = dbutils.widgets.get('reset_all_data') == 'true'
 
 import os
 import re 
-import mlflow
+#import mlflow
 
 # COMMAND ----------
 
@@ -28,6 +28,10 @@ print("Starting ./_resources/00-setup")
 
 if reset_all_data:
   spark.sql(f"DROP CATALOG IF EXISTS {catalogName} CASCADE")
+
+# COMMAND ----------
+
+
 
 spark.sql(f"""create catalog if not exists {catalogName}""")
 spark.sql(f"""USE CATALOG {catalogName}""")
@@ -48,8 +52,6 @@ if (os.path.basename(dirname) != '_resources'):
 
 generate_data_notebook_path = os.path.join(dirname,filename)
 
-# print(generate_data_notebook_path)
-
 def generate_data():
   dbutils.notebook.run(generate_data_notebook_path, 3000, {"reset_all_data": reset_all_data, "catalogName": catalogName,   "dbName": dbName})
 
@@ -62,18 +64,18 @@ if reset_all_data:
 
 # COMMAND ----------
 
-current_user = dbutils.notebook.entry_point.getDbutils().notebook().getContext().userName().get()
-if current_user.rfind('@') > 0:
-  current_user_no_at = current_user[:current_user.rfind('@')]
-else:
-  current_user_no_at = current_user
-current_user_no_at = re.sub(r'\W+', '_', current_user_no_at)
-username_friendly = current_user_no_at
-display(current_user_no_at)
+#current_user = dbutils.notebook.entry_point.getDbutils().notebook().getContext().userName().get()
+#if current_user.rfind('@') > 0:
+#  current_user_no_at = current_user[:current_user.rfind('@')]
+#else:
+#  current_user_no_at = current_user
+#current_user_no_at = re.sub(r'\W+', '_', current_user_no_at)
+#username_friendly = current_user_no_at
+#display(current_user_no_at)
 
 # COMMAND ----------
 
-mlflow.set_experiment('/Users/{}/supply_chain_optimization'.format(current_user))
+#mlflow.set_experiment('/Users/{}/supply_chain_optimization'.format(current_user))
 
 # COMMAND ----------
 
