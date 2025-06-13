@@ -1,22 +1,5 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC # What is Databricks on SAP Business Data Cloud (BDC)?
-# MAGIC
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC `SAP Databricks`, is a customized offering that integrates Databricks' data science, SQL serverless, and AI/ML features into the BDC. It is particularly used by those customers that are transitioning their ERP and BW functionalities to the cloud under the "SAP RISE" initiative. A main component is that SAP provides managed data products stored in HANA Data Lake Files, which can then be shared to SAP Databricks or native Databricks using Delta Sharing. At the moment of writing this, only a few managed data products are available. However, there is a strong roadmap to extend.
-# MAGIC
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/main/Pictures/SAP_BDC_Components.png" width="1500"/>
-
-# COMMAND ----------
-
-# MAGIC %md
 # MAGIC # What is the Bill of Material?
 
 # COMMAND ----------
@@ -67,12 +50,6 @@ bom_df.display()
 # MAGIC %md
 # MAGIC *Prerequisite: Make sure to run 01_Introduction_And_Setup and 02_Fine_Grained_Demand_Forecasting before running this notebook.*
 # MAGIC
-# MAGIC While the previous notebook *(002_Fine_Grained_Demand_Forecasting)* demonstrated the benefits of one of the Databricks' approach to train multiple models in parallel with great speed and cost-effectiveness,
-# MAGIC in this part we show how to use Databricks' graph functionality to traverse the manufacturing value chain to find out how much raw material is needed for production.
-# MAGIC
-# MAGIC Key highlights for this notebook:
-# MAGIC - Solve large scale graph problems by using GraphX as a distributed graph processing framework on top of Apache Spark
-# MAGIC - Leverage the full support for property graphs to incorporate business knowlegde and the traverse the manufacturing value chain 
 
 # COMMAND ----------
 
@@ -83,24 +60,6 @@ bom_df.display()
 
 # MAGIC %md
 # MAGIC Once the demand is forecasted, manufacturers need to purchase raw material and initiate production planning. This notebook shows how to translate future demand into raw materials. More precisely, we will do a Bill of Material (BoM) resolution to map the forecasted demand for each SKU to the appropriate demand of raw materials that are needed to produce the finished good that is mapped to the SKU.
-
-# COMMAND ----------
-
-#If True, all output files are in user specific databases, If False, a global database for the report is used
-#user_based_data = True
-
-# COMMAND ----------
-
-#%run ./_resources_outside/00-global-setup $reset_all_data=false $db_prefix=demand_level_forecasting
-
-# COMMAND ----------
-
-#if (not user_based_data):
-#  cloud_storage_path = '/FileStore/tables/demand_forecasting_solution_accelerator/'
-#  dbName = 'demand_db' 
-#  
-##print(cloud_storage_path)
-print(dbName)
 
 # COMMAND ----------
 
@@ -211,7 +170,7 @@ bom = spark.read.table(f"{catalogName}.{dbName}.bom")
 
 # COMMAND ----------
 
-demand_df = (demand_df.select(f.col("Product"), f.col("SKU"), f.col("Date"), f.col("Demand")))
+demand_df = (demand_df.select(f.col("Product"), f.col("SKU"), f.col("Date"), f.col("Demand")))  
 
 # COMMAND ----------
 

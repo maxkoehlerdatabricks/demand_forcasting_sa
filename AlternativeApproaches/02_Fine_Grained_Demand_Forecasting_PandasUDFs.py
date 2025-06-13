@@ -1,8 +1,4 @@
 # Databricks notebook source
-# MAGIC %pip install ray[tune]
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC # Fine Grained Demand Forecasting
 
@@ -16,16 +12,7 @@
 # MAGIC Key highlights for this notebook:
 # MAGIC - Use Databricks' collaborative and interactive notebook environment to find an appropriate time series mdoel
 # MAGIC - Pandas UDFs (user-defined functions) can take your single-node data science code, and distribute it across different keys (e.g. SKU)  
-# MAGIC - Hyperopt can also perform hyperparameter tuning from within a Pandas UDF  
-
-# COMMAND ----------
-
-#If True, all output files are in user specific databases, If False, a global database for the report is used
-#user_based_data = True
-
-# COMMAND ----------
-
-# %run ./_resources_outside/00-global-setup $reset_all_data=false $db_prefix=demand_level_forecasting
+# MAGIC - Use Ray to perform hyperparameter tuning from within a Pandas UDF  
 
 # COMMAND ----------
 
@@ -58,10 +45,13 @@ from statsmodels.tsa.api import ExponentialSmoothing, SimpleExpSmoothing, Holt
 from statsmodels.tsa.statespace.sarimax import SARIMAX
 
 import mlflow
-import hyperopt
-from hyperopt import hp, fmin, tpe, SparkTrials, STATUS_OK, space_eval
-from hyperopt.pyll.base import scope
+import ray
+from ray import tune
+from ray.tune.search.hyperopt import HyperOptSearch
+
 mlflow.autolog(disable=True)
+
+
 
 from statsmodels.tsa.api import Holt
 from statsmodels.tsa.statespace.sarimax import SARIMAX
@@ -258,78 +248,6 @@ plt.title("SARIMAX")
 
 # COMMAND ----------
 
-# MAGIC %md
-# MAGIC For the model above, we applied a manual trial-and-error method to find good parameters. MLFlow and Hyperopt can be leveraged to find optimal parameters automatically. 
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC First, we define an evaluation function. It trains a SARIMAX model with given parameters and evaluates it by calculating the mean squared error.
-
-# COMMAND ----------
-
-#def evaluate_model(hyperopt_params):
-#  
-#  # Configure model parameters
-#  params = hyperopt_params
-#  
-#  assert "p" in params and "d" in params and "q" in params, "Please provide p, d, and q"
-#  
-#  if 'p' in params: params['p']=int(params['p']) # hyperopt supplies values as float but model requires int
-#  if 'd' in params: params['d']=int(params['d']) # hyperopt supplies values as float but model requires int
-#  if 'q' in params: params['q']=int(params['q']) # hyperopt supplies values as float but model requires int
-#    
-#  order_parameters = (params['p'],params['d'],params['q'])
-#
-#  # For simplicity in this example, assume no seasonality
-#  model1 = SARIMAX(train, exog=train_exo, order=order_parameters, seasonal_order=(0, 0, 0, 0))
-#  fit1 = model1.fit(disp=False)
-#  fcast1 = fit1.predict(start = min(score_exo.index), end = max(score_exo.index), exog = score_exo )
-#
-#  return {'status': hyperopt.STATUS_OK, 'loss': np.power(score.to_numpy() - fcast1.to_numpy(), 2).mean()}
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC Second, we define a search space of parameters for which the model will be evaluated.
-
-# COMMAND ----------
-
-#space = {
-#  'p': scope.int(hyperopt.hp.quniform('p', 0, 4, 1)),
-#  'd': scope.int(hyperopt.hp.quniform('d', 0, 2, 1)),
-#  'q': scope.int(hyperopt.hp.quniform('q', 0, 4, 1)) 
-#}
-
-# COMMAND ----------
-
-# MAGIC %md
-# MAGIC We now take advantage of the search space and the evaluation function to automatically find optimal parameters. Note that these models get automatically tracked in an experiment.
-
-# COMMAND ----------
-
-#username_friendly = 'default_user'; rstate = np.random.default_rng(123)#
-#
-#with mlflow.start_run(run_name=f'{username_friendly}_test_sa'):
-#  argmin = fmin(
-#    fn=evaluate_model,
-#    space=space,
-#    algo=tpe.suggest,  # algorithm controlling how hyperopt navigates the search space
-#    max_evals=10,
-#    trials=None,
- #   rstate=rstate,
- #   verbose=False
- #   )
-
-# COMMAND ----------
-
-#%pip install ray[tune]
-
-import ray
-from ray import tune
-from ray.tune.search.hyperopt import HyperOptSearch
-import mlflow
-
 # Define the search space
 space = {
   'p': tune.randint(0, 5),
@@ -376,10 +294,6 @@ ray.shutdown()
 
 best_config = analysis.get_best_config(metric="mse", mode="min")
 print("Best hyperparameters: ", best_config)
-
-# COMMAND ----------
-
-tuple(best_config.values())
 
 # COMMAND ----------
 
@@ -521,29 +435,6 @@ def build_tune_and_score_model(sku_pdf: pd.DataFrame) -> pd.DataFrame:
       print(f"Error in evaluate_model: {e}")
       return {"mse": float('inf')}
        
-  #search_space = {
-  #'p': tune.randint(0, 5),
-  #'d': tune.randint(0, 3),
-  #'q': tune.randint(0, 5)
-  #}
-
-  #ray.init()
-
-  # Start the hyperparameter tuning
-  #with mlflow.start_run(run_name=f'maxkoehler_test_sa'):
-  #  analysis = tune.run(
-  #    evaluate_model,
-  #    config=search_space,
-  #    search_alg=HyperOptSearch(
-  #      metric="mse",
-  #      mode="min"
-  #    ),
-  #    num_samples=2,
-  #    verbose=1
-  #  )
-
-  # Shutdown Ray
-  #ray.shutdown()
 
   #best_config = analysis.get_best_config(metric="mse", mode="min")
   best_config = {'p': 2, 'd': 2, 'q': 1}
