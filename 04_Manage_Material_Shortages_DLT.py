@@ -66,6 +66,24 @@ from pyspark.sql.types import FloatType
 # COMMAND ----------
 
 # MAGIC %md
+# MAGIC ### Building a Lakeflow Declarative Pipeline to analyze and manage raw material shortages
+# MAGIC
+# MAGIC In this example we'll implement an end-2-end lakeflow declarative pipeline consuming our forecasted raw parts demand. 
+# MAGIC
+# MAGIC We'll incrementally load new data and simulate raw material shortages, which we'll then use to find affected skus and adjust our production quantities according to what can be shipped to our customers. 
+# MAGIC
+# MAGIC This information will then be used to:
+# MAGIC   - Build our AI/BI Dashboard to track material shortages and their impact
+# MAGIC   - Set-up a Genie Space to provide Analytics Self-Service and enable natural language interactions for Ad-Hoc questions
+
+# COMMAND ----------
+
+# MAGIC %md
+# MAGIC <img src="https://raw.githubusercontent.com/maxkoehlerdatabricks/demand_forcasting_sa/main/Pictures/dlt_pipeline_graph.png" width="1500"/>
+
+# COMMAND ----------
+
+# MAGIC %md
 # MAGIC ## Get all reported raw material shortages
 
 # COMMAND ----------
@@ -114,6 +132,10 @@ def min_fraction():
           )
 
 @dlt.table(name="demand_adjusted", comment="Demand adjusted for raw material shortages")
+@dlt.expect_or_drop("valid date", "Date IS NOT NULL AND Date <= current_date() + interval 90 days")
+@dlt.expect_or_drop("valid adjusted demand", "Adjusted_Demand_Raw >= 0")
+@dlt.expect("valid sku", "Affected_SKU IS NOT NULL")
+@dlt.expect("valid raw", "RAW IS NOT NULL")
 def demand_adjusted():
   affected_skus_df = spark.read.table("affected_skus")
   min_fraction = spark.read.table("min_fraction")
@@ -143,6 +165,8 @@ def demand_adjusted():
 # COMMAND ----------
 
 @dlt.table(name="raw_overplanning", comment="Raw material adjusted to prevent overplanning due to material shortages")
+@dlt.expect_or_drop("valid raw", "RAW IS NOT NULL")
+@dlt.expect_or_drop("valid demand raw adjusted", "Demand_Raw_Adjusted >= 0")
 def raw_overplanning():
   affected_skus_df = spark.read.table("demand_adjusted")
   demand_raw_df = spark.read.table("forecast_raw")
