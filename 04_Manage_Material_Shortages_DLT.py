@@ -132,10 +132,6 @@ def min_fraction():
           )
 
 @dlt.table(name="demand_adjusted", comment="Demand adjusted for raw material shortages")
-@dlt.expect_or_drop("valid date", "Date IS NOT NULL AND Date <= current_date() + interval 90 days")
-@dlt.expect_or_drop("valid adjusted demand", "Adjusted_Demand_Raw >= 0")
-@dlt.expect("valid sku", "Affected_SKU IS NOT NULL")
-@dlt.expect("valid raw", "RAW IS NOT NULL")
 def demand_adjusted():
   affected_skus_df = spark.read.table("affected_skus")
   min_fraction = spark.read.table("min_fraction")
@@ -164,9 +160,16 @@ def demand_adjusted():
 
 # COMMAND ----------
 
+# MAGIC %md
+# MAGIC We're adding an expectation on different fields to enforce and track our Data Quality.<br>
+# MAGIC This will ensure that our data is valid and easily spot potential errors due to data anomaly.
+
+# COMMAND ----------
+
 @dlt.table(name="raw_overplanning", comment="Raw material adjusted to prevent overplanning due to material shortages")
 @dlt.expect_or_drop("valid raw", "RAW IS NOT NULL")
 @dlt.expect_or_drop("valid demand raw adjusted", "Demand_Raw_Adjusted >= 0")
+@dlt.expect_or_drop("valid date", "Date IS NOT NULL AND Date <= current_date() + interval 90 days")
 def raw_overplanning():
   affected_skus_df = spark.read.table("demand_adjusted")
   demand_raw_df = spark.read.table("forecast_raw")
