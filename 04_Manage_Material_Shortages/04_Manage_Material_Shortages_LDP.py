@@ -88,8 +88,8 @@ from pyspark.sql.types import FloatType
 
 # COMMAND ----------
 
-@dlt.table(name="material_shortages", comment="All reported material shortages for raw materials")
-def material_shortages():
+@dlt.table(name="get_material_shortages", comment="All reported material shortages for raw materials")
+def get_material_shortages():
     demand_raw_df = spark.read.table("forecast_raw")
     material_shortages_sku = [row['SKU'] for row in demand_raw_df.select('SKU').distinct().orderBy(f.rand()).limit(2).collect()]
     material_shortages_raw = [row['RAW'] for row in demand_raw_df.filter(f.col("SKU").isin(material_shortages_sku)).select('RAW').distinct().orderBy(f.rand()).limit(3).collect()]
@@ -116,7 +116,7 @@ def material_shortages():
 
 @dlt.table(name="affected_skus", comment="SKUs affected by material shortages")
 def affected_skus():
-  material_shortage_df = spark.read.table("material_shortages")
+  material_shortage_df = spark.read.table("get_material_shortages")
   demand_raw_df = spark.read.table("forecast_raw")
   return (material_shortage_df
             .join(demand_raw_df, ["RAW", "Date"], how="inner")
