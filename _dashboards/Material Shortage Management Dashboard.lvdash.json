@@ -1,383 +1,470 @@
 {
-  "datasets" : [ {
-    "name" : "8d78feda",
-    "displayName" : "raw_overplanning",
-    "query" : "SELECT * FROM patrick_zier_demos.demand_db.raw_overplanning"
-  }, {
-    "name" : "f61f4680",
-    "displayName" : "forecast_raw",
-    "query" : "SELECT * FROM patrick_zier_demos.demand_db.forecast_raw"
-  }, {
-    "name" : "e69babe9",
-    "displayName" : "bom",
-    "query" : "SELECT * FROM patrick_zier_demos.demand_db.bom"
-  }, {
-    "name" : "6b70a456",
-    "displayName" : "material_shortages",
-    "query" : "SELECT * FROM patrick_zier_demos.demand_db.material_shortages"
-  }, {
-    "name" : "22176e36",
-    "displayName" : "affected_skus",
-    "query" : "SELECT * FROM patrick_zier_demos.demand_db.affected_skus"
-  }, {
-    "name" : "8c0fc14a",
-    "displayName" : "demand_adjusted",
-    "query" : "SELECT * FROM patrick_zier_demos.demand_db.demand_adjusted"
-  }, {
-    "name" : "85b11a14",
-    "displayName" : "part_level_demand_with_forecasts",
-    "query" : "SELECT * FROM patrick_zier_demos.demand_db.part_level_demand_with_forecasts"
-  } ],
-  "pages" : [ {
-    "name" : "9d094d06",
-    "displayName" : "Untitled page",
-    "layout" : [ {
-      "widget" : {
-        "name" : "4cbc83a4",
-        "queries" : [ {
-          "name" : "main_query",
-          "query" : {
-            "datasetName" : "6b70a456",
-            "fields" : [ {
-              "name" : "count(*)",
-              "expression" : "COUNT(`*`)"
-            } ],
-            "disaggregated" : false
-          }
-        } ],
-        "spec" : {
-          "version" : 2,
-          "widgetType" : "counter",
-          "encodings" : {
-            "value" : {
-              "fieldName" : "count(*)",
-              "displayName" : "Count of Records"
+  "datasets": [
+    {
+      "name": "8d78feda",
+      "displayName": "raw_overplanning",
+      "queryLines": [
+        "SELECT * FROM patrick_zier_demos.demand_db.raw_overplanning"
+      ]
+    },
+    {
+      "name": "f61f4680",
+      "displayName": "forecast_raw",
+      "queryLines": [
+        "SELECT * FROM patrick_zier_demos.demand_db.forecast_raw"
+      ]
+    },
+    {
+      "name": "e69babe9",
+      "displayName": "bom",
+      "queryLines": [
+        "SELECT * FROM patrick_zier_demos.demand_db.bom"
+      ]
+    },
+    {
+      "name": "6b70a456",
+      "displayName": "material_shortages",
+      "queryLines": [
+        "SELECT * FROM patrick_zier_demos.demand_db.material_shortages"
+      ]
+    },
+    {
+      "name": "22176e36",
+      "displayName": "affected_skus",
+      "queryLines": [
+        "SELECT * FROM patrick_zier_demos.demand_db.affected_skus"
+      ]
+    },
+    {
+      "name": "8c0fc14a",
+      "displayName": "demand_adjusted",
+      "queryLines": [
+        "SELECT * FROM patrick_zier_demos.demand_db.demand_adjusted"
+      ]
+    },
+    {
+      "name": "85b11a14",
+      "displayName": "part_level_demand_with_forecasts",
+      "queryLines": [
+        "SELECT * FROM patrick_zier_demos.demand_db.part_level_demand_with_forecasts"
+      ]
+    }
+  ],
+  "pages": [
+    {
+      "name": "9d094d06",
+      "displayName": "Untitled page",
+      "layout": [
+        {
+          "widget": {
+            "name": "4cbc83a4",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "6b70a456",
+                  "fields": [
+                    {
+                      "name": "count(*)",
+                      "expression": "COUNT(`*`)"
+                    }
+                  ],
+                  "disaggregated": false
+                }
+              }
+            ],
+            "spec": {
+              "version": 2,
+              "widgetType": "counter",
+              "encodings": {
+                "value": {
+                  "fieldName": "count(*)",
+                  "displayName": "Count of Records"
+                }
+              },
+              "frame": {
+                "showTitle": true,
+                "title": "# of raw material shortages",
+                "headerAlignment": "center"
+              }
             }
           },
-          "frame" : {
-            "showTitle" : true,
-            "title" : "# of raw material shortages",
-            "headerAlignment" : "center"
+          "position": {
+            "x": 0,
+            "y": 0,
+            "width": 2,
+            "height": 4
           }
-        }
-      },
-      "position" : {
-        "x" : 0,
-        "y" : 0,
-        "width" : 2,
-        "height" : 4
-      }
-    }, {
-      "widget" : {
-        "name" : "37374c86",
-        "queries" : [ {
-          "name" : "main_query",
-          "query" : {
-            "datasetName" : "8c0fc14a",
-            "fields" : [ {
-              "name" : "RAW",
-              "expression" : "`RAW`"
-            }, {
-              "name" : "Date",
-              "expression" : "`Date`"
-            }, {
-              "name" : "Affected_SKU",
-              "expression" : "`Affected_SKU`"
-            }, {
-              "name" : "Adjusted_Demand_Raw",
-              "expression" : "`Adjusted_Demand_Raw`"
-            }, {
-              "name" : "Adjusted_Demand_SKU",
-              "expression" : "`Adjusted_Demand_SKU`"
-            } ],
-            "disaggregated" : true
-          }
-        } ],
-        "spec" : {
-          "version" : 1,
-          "widgetType" : "table",
-          "encodings" : {
-            "columns" : [ {
-              "fieldName" : "RAW",
-              "booleanValues" : [ "false", "true" ],
-              "imageUrlTemplate" : "{{ @ }}",
-              "imageTitleTemplate" : "{{ @ }}",
-              "imageWidth" : "",
-              "imageHeight" : "",
-              "linkUrlTemplate" : "{{ @ }}",
-              "linkTextTemplate" : "{{ @ }}",
-              "linkTitleTemplate" : "{{ @ }}",
-              "linkOpenInNewTab" : true,
-              "type" : "string",
-              "displayAs" : "string",
-              "visible" : true,
-              "order" : 100000,
-              "title" : "RAW",
-              "allowSearch" : false,
-              "alignContent" : "left",
-              "allowHTML" : false,
-              "highlightLinks" : false,
-              "useMonospaceFont" : false,
-              "preserveWhitespace" : false,
-              "displayName" : "RAW"
-            }, {
-              "fieldName" : "Date",
-              "dateTimeFormat" : "YYYY-MM-DD",
-              "booleanValues" : [ "false", "true" ],
-              "imageUrlTemplate" : "{{ @ }}",
-              "imageTitleTemplate" : "{{ @ }}",
-              "imageWidth" : "",
-              "imageHeight" : "",
-              "linkUrlTemplate" : "{{ @ }}",
-              "linkTextTemplate" : "{{ @ }}",
-              "linkTitleTemplate" : "{{ @ }}",
-              "linkOpenInNewTab" : true,
-              "type" : "date",
-              "displayAs" : "datetime",
-              "visible" : true,
-              "order" : 100001,
-              "title" : "Date",
-              "allowSearch" : false,
-              "alignContent" : "right",
-              "allowHTML" : false,
-              "highlightLinks" : false,
-              "useMonospaceFont" : false,
-              "preserveWhitespace" : false,
-              "displayName" : "Date"
-            }, {
-              "fieldName" : "Affected_SKU",
-              "booleanValues" : [ "false", "true" ],
-              "imageUrlTemplate" : "{{ @ }}",
-              "imageTitleTemplate" : "{{ @ }}",
-              "imageWidth" : "",
-              "imageHeight" : "",
-              "linkUrlTemplate" : "{{ @ }}",
-              "linkTextTemplate" : "{{ @ }}",
-              "linkTitleTemplate" : "{{ @ }}",
-              "linkOpenInNewTab" : true,
-              "type" : "string",
-              "displayAs" : "string",
-              "visible" : true,
-              "order" : 100002,
-              "title" : "Affected_SKU",
-              "allowSearch" : false,
-              "alignContent" : "left",
-              "allowHTML" : false,
-              "highlightLinks" : false,
-              "useMonospaceFont" : false,
-              "preserveWhitespace" : false,
-              "displayName" : "Affected_SKU"
-            }, {
-              "fieldName" : "Adjusted_Demand_Raw",
-              "numberFormat" : "0",
-              "booleanValues" : [ "false", "true" ],
-              "imageUrlTemplate" : "{{ @ }}",
-              "imageTitleTemplate" : "{{ @ }}",
-              "imageWidth" : "",
-              "imageHeight" : "",
-              "linkUrlTemplate" : "{{ @ }}",
-              "linkTextTemplate" : "{{ @ }}",
-              "linkTitleTemplate" : "{{ @ }}",
-              "linkOpenInNewTab" : true,
-              "type" : "integer",
-              "displayAs" : "number",
-              "visible" : true,
-              "order" : 100005,
-              "title" : "Adjusted_Demand_Raw",
-              "allowSearch" : false,
-              "alignContent" : "right",
-              "allowHTML" : false,
-              "highlightLinks" : false,
-              "useMonospaceFont" : false,
-              "preserveWhitespace" : false,
-              "displayName" : "Adjusted_Demand_Raw"
-            }, {
-              "fieldName" : "Adjusted_Demand_SKU",
-              "numberFormat" : "0",
-              "booleanValues" : [ "false", "true" ],
-              "imageUrlTemplate" : "{{ @ }}",
-              "imageTitleTemplate" : "{{ @ }}",
-              "imageWidth" : "",
-              "imageHeight" : "",
-              "linkUrlTemplate" : "{{ @ }}",
-              "linkTextTemplate" : "{{ @ }}",
-              "linkTitleTemplate" : "{{ @ }}",
-              "linkOpenInNewTab" : true,
-              "type" : "integer",
-              "displayAs" : "number",
-              "visible" : true,
-              "order" : 100007,
-              "title" : "Adjusted_Demand_SKU",
-              "allowSearch" : false,
-              "alignContent" : "right",
-              "allowHTML" : false,
-              "highlightLinks" : false,
-              "useMonospaceFont" : false,
-              "preserveWhitespace" : false,
-              "displayName" : "Adjusted_Demand_SKU"
-            } ]
-          },
-          "invisibleColumns" : [ {
-            "booleanValues" : [ "false", "true" ],
-            "imageUrlTemplate" : "{{ @ }}",
-            "imageTitleTemplate" : "{{ @ }}",
-            "imageWidth" : "",
-            "imageHeight" : "",
-            "linkUrlTemplate" : "{{ @ }}",
-            "linkTextTemplate" : "{{ @ }}",
-            "linkTitleTemplate" : "{{ @ }}",
-            "linkOpenInNewTab" : true,
-            "name" : "Affected_Product",
-            "type" : "string",
-            "displayAs" : "string",
-            "order" : 100003,
-            "title" : "Affected_Product",
-            "allowSearch" : false,
-            "alignContent" : "left",
-            "allowHTML" : false,
-            "highlightLinks" : false,
-            "useMonospaceFont" : false,
-            "preserveWhitespace" : false
-          }, {
-            "numberFormat" : "0.00",
-            "booleanValues" : [ "false", "true" ],
-            "imageUrlTemplate" : "{{ @ }}",
-            "imageTitleTemplate" : "{{ @ }}",
-            "imageWidth" : "",
-            "imageHeight" : "",
-            "linkUrlTemplate" : "{{ @ }}",
-            "linkTextTemplate" : "{{ @ }}",
-            "linkTitleTemplate" : "{{ @ }}",
-            "linkOpenInNewTab" : true,
-            "name" : "Demand_RAW",
-            "type" : "float",
-            "displayAs" : "number",
-            "order" : 100004,
-            "title" : "Demand_RAW",
-            "allowSearch" : false,
-            "alignContent" : "right",
-            "allowHTML" : false,
-            "highlightLinks" : false,
-            "useMonospaceFont" : false,
-            "preserveWhitespace" : false
-          }, {
-            "numberFormat" : "0.00",
-            "booleanValues" : [ "false", "true" ],
-            "imageUrlTemplate" : "{{ @ }}",
-            "imageTitleTemplate" : "{{ @ }}",
-            "imageWidth" : "",
-            "imageHeight" : "",
-            "linkUrlTemplate" : "{{ @ }}",
-            "linkTextTemplate" : "{{ @ }}",
-            "linkTitleTemplate" : "{{ @ }}",
-            "linkOpenInNewTab" : true,
-            "name" : "Demand_SKU",
-            "type" : "float",
-            "displayAs" : "number",
-            "order" : 100006,
-            "title" : "Demand_SKU",
-            "allowSearch" : false,
-            "alignContent" : "right",
-            "allowHTML" : false,
-            "highlightLinks" : false,
-            "useMonospaceFont" : false,
-            "preserveWhitespace" : false
-          }, {
-            "numberFormat" : "0.00",
-            "booleanValues" : [ "false", "true" ],
-            "imageUrlTemplate" : "{{ @ }}",
-            "imageTitleTemplate" : "{{ @ }}",
-            "imageWidth" : "",
-            "imageHeight" : "",
-            "linkUrlTemplate" : "{{ @ }}",
-            "linkTextTemplate" : "{{ @ }}",
-            "linkTitleTemplate" : "{{ @ }}",
-            "linkOpenInNewTab" : true,
-            "name" : "Available_Fraction_For_SKU",
-            "type" : "float",
-            "displayAs" : "number",
-            "order" : 100008,
-            "title" : "Available_Fraction_For_SKU",
-            "allowSearch" : false,
-            "alignContent" : "right",
-            "allowHTML" : false,
-            "highlightLinks" : false,
-            "useMonospaceFont" : false,
-            "preserveWhitespace" : false
-          } ],
-          "allowHTMLByDefault" : false,
-          "itemsPerPage" : 5,
-          "paginationSize" : "default",
-          "condensed" : true,
-          "withRowNumber" : false,
-          "frame" : {
-            "showTitle" : true,
-            "title" : "Raw material shortages"
-          }
-        }
-      },
-      "position" : {
-        "x" : 2,
-        "y" : 0,
-        "width" : 4,
-        "height" : 4
-      }
-    }, {
-      "widget" : {
-        "name" : "e54356d5",
-        "queries" : [ {
-          "name" : "main_query",
-          "query" : {
-            "datasetName" : "8c0fc14a",
-            "fields" : [ {
-              "name" : "Affected_SKU",
-              "expression" : "`Affected_SKU`"
-            }, {
-              "name" : "Demand_SKU",
-              "expression" : "`Demand_SKU`"
-            }, {
-              "name" : "Adjusted_Demand_SKU",
-              "expression" : "`Adjusted_Demand_SKU`"
-            } ],
-            "disaggregated" : true
-          }
-        } ],
-        "spec" : {
-          "version" : 3,
-          "widgetType" : "line",
-          "encodings" : {
-            "x" : {
-              "fieldName" : "Affected_SKU",
-              "scale" : {
-                "type" : "categorical"
+        },
+        {
+          "widget": {
+            "name": "37374c86",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "8c0fc14a",
+                  "fields": [
+                    {
+                      "name": "RAW",
+                      "expression": "`RAW`"
+                    },
+                    {
+                      "name": "Date",
+                      "expression": "`Date`"
+                    },
+                    {
+                      "name": "Affected_SKU",
+                      "expression": "`Affected_SKU`"
+                    },
+                    {
+                      "name": "Adjusted_Demand_Raw",
+                      "expression": "`Adjusted_Demand_Raw`"
+                    },
+                    {
+                      "name": "Adjusted_Demand_SKU",
+                      "expression": "`Adjusted_Demand_SKU`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 1,
+              "widgetType": "table",
+              "encodings": {
+                "columns": [
+                  {
+                    "fieldName": "RAW",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 100000,
+                    "title": "RAW",
+                    "allowSearch": false,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "RAW"
+                  },
+                  {
+                    "fieldName": "Date",
+                    "dateTimeFormat": "YYYY-MM-DD",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "date",
+                    "displayAs": "datetime",
+                    "visible": true,
+                    "order": 100001,
+                    "title": "Date",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "Date"
+                  },
+                  {
+                    "fieldName": "Affected_SKU",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "string",
+                    "displayAs": "string",
+                    "visible": true,
+                    "order": 100002,
+                    "title": "Affected_SKU",
+                    "allowSearch": false,
+                    "alignContent": "left",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "Affected_SKU"
+                  },
+                  {
+                    "fieldName": "Adjusted_Demand_Raw",
+                    "numberFormat": "0",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "integer",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 100005,
+                    "title": "Adjusted_Demand_Raw",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "Adjusted_Demand_Raw"
+                  },
+                  {
+                    "fieldName": "Adjusted_Demand_SKU",
+                    "numberFormat": "0",
+                    "booleanValues": [
+                      "false",
+                      "true"
+                    ],
+                    "imageUrlTemplate": "{{ @ }}",
+                    "imageTitleTemplate": "{{ @ }}",
+                    "imageWidth": "",
+                    "imageHeight": "",
+                    "linkUrlTemplate": "{{ @ }}",
+                    "linkTextTemplate": "{{ @ }}",
+                    "linkTitleTemplate": "{{ @ }}",
+                    "linkOpenInNewTab": true,
+                    "type": "integer",
+                    "displayAs": "number",
+                    "visible": true,
+                    "order": 100007,
+                    "title": "Adjusted_Demand_SKU",
+                    "allowSearch": false,
+                    "alignContent": "right",
+                    "allowHTML": false,
+                    "highlightLinks": false,
+                    "useMonospaceFont": false,
+                    "preserveWhitespace": false,
+                    "displayName": "Adjusted_Demand_SKU"
+                  }
+                ]
               },
-              "displayName" : "Affected_SKU"
-            },
-            "y" : {
-              "scale" : {
-                "type" : "quantitative"
-              },
-              "fields" : [ {
-                "fieldName" : "Demand_SKU",
-                "displayName" : "Demand_SKU"
-              }, {
-                "fieldName" : "Adjusted_Demand_SKU",
-                "displayName" : "Adjusted_Demand_SKU"
-              } ]
+              "invisibleColumns": [
+                {
+                  "booleanValues": [
+                    "false",
+                    "true"
+                  ],
+                  "imageUrlTemplate": "{{ @ }}",
+                  "imageTitleTemplate": "{{ @ }}",
+                  "imageWidth": "",
+                  "imageHeight": "",
+                  "linkUrlTemplate": "{{ @ }}",
+                  "linkTextTemplate": "{{ @ }}",
+                  "linkTitleTemplate": "{{ @ }}",
+                  "linkOpenInNewTab": true,
+                  "name": "Affected_Product",
+                  "type": "string",
+                  "displayAs": "string",
+                  "order": 100003,
+                  "title": "Affected_Product",
+                  "allowSearch": false,
+                  "alignContent": "left",
+                  "allowHTML": false,
+                  "highlightLinks": false,
+                  "useMonospaceFont": false,
+                  "preserveWhitespace": false
+                },
+                {
+                  "numberFormat": "0.00",
+                  "booleanValues": [
+                    "false",
+                    "true"
+                  ],
+                  "imageUrlTemplate": "{{ @ }}",
+                  "imageTitleTemplate": "{{ @ }}",
+                  "imageWidth": "",
+                  "imageHeight": "",
+                  "linkUrlTemplate": "{{ @ }}",
+                  "linkTextTemplate": "{{ @ }}",
+                  "linkTitleTemplate": "{{ @ }}",
+                  "linkOpenInNewTab": true,
+                  "name": "Demand_RAW",
+                  "type": "float",
+                  "displayAs": "number",
+                  "order": 100004,
+                  "title": "Demand_RAW",
+                  "allowSearch": false,
+                  "alignContent": "right",
+                  "allowHTML": false,
+                  "highlightLinks": false,
+                  "useMonospaceFont": false,
+                  "preserveWhitespace": false
+                },
+                {
+                  "numberFormat": "0.00",
+                  "booleanValues": [
+                    "false",
+                    "true"
+                  ],
+                  "imageUrlTemplate": "{{ @ }}",
+                  "imageTitleTemplate": "{{ @ }}",
+                  "imageWidth": "",
+                  "imageHeight": "",
+                  "linkUrlTemplate": "{{ @ }}",
+                  "linkTextTemplate": "{{ @ }}",
+                  "linkTitleTemplate": "{{ @ }}",
+                  "linkOpenInNewTab": true,
+                  "name": "Demand_SKU",
+                  "type": "float",
+                  "displayAs": "number",
+                  "order": 100006,
+                  "title": "Demand_SKU",
+                  "allowSearch": false,
+                  "alignContent": "right",
+                  "allowHTML": false,
+                  "highlightLinks": false,
+                  "useMonospaceFont": false,
+                  "preserveWhitespace": false
+                },
+                {
+                  "numberFormat": "0.00",
+                  "booleanValues": [
+                    "false",
+                    "true"
+                  ],
+                  "imageUrlTemplate": "{{ @ }}",
+                  "imageTitleTemplate": "{{ @ }}",
+                  "imageWidth": "",
+                  "imageHeight": "",
+                  "linkUrlTemplate": "{{ @ }}",
+                  "linkTextTemplate": "{{ @ }}",
+                  "linkTitleTemplate": "{{ @ }}",
+                  "linkOpenInNewTab": true,
+                  "name": "Available_Fraction_For_SKU",
+                  "type": "float",
+                  "displayAs": "number",
+                  "order": 100008,
+                  "title": "Available_Fraction_For_SKU",
+                  "allowSearch": false,
+                  "alignContent": "right",
+                  "allowHTML": false,
+                  "highlightLinks": false,
+                  "useMonospaceFont": false,
+                  "preserveWhitespace": false
+                }
+              ],
+              "allowHTMLByDefault": false,
+              "itemsPerPage": 5,
+              "paginationSize": "default",
+              "condensed": true,
+              "withRowNumber": false,
+              "frame": {
+                "showTitle": true,
+                "title": "Raw material shortages"
+              }
             }
+          },
+          "position": {
+            "x": 2,
+            "y": 0,
+            "width": 4,
+            "height": 4
+          }
+        },
+        {
+          "widget": {
+            "name": "e54356d5",
+            "queries": [
+              {
+                "name": "main_query",
+                "query": {
+                  "datasetName": "8c0fc14a",
+                  "fields": [
+                    {
+                      "name": "Affected_SKU",
+                      "expression": "`Affected_SKU`"
+                    },
+                    {
+                      "name": "Demand_SKU",
+                      "expression": "`Demand_SKU`"
+                    },
+                    {
+                      "name": "Adjusted_Demand_SKU",
+                      "expression": "`Adjusted_Demand_SKU`"
+                    }
+                  ],
+                  "disaggregated": true
+                }
+              }
+            ],
+            "spec": {
+              "version": 3,
+              "widgetType": "line",
+              "encodings": {
+                "x": {
+                  "fieldName": "Affected_SKU",
+                  "scale": {
+                    "type": "categorical"
+                  },
+                  "displayName": "Affected_SKU"
+                },
+                "y": {
+                  "scale": {
+                    "type": "quantitative"
+                  },
+                  "fields": [
+                    {
+                      "fieldName": "Demand_SKU",
+                      "displayName": "Demand_SKU"
+                    },
+                    {
+                      "fieldName": "Adjusted_Demand_SKU",
+                      "displayName": "Adjusted_Demand_SKU"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "position": {
+            "x": 0,
+            "y": 4,
+            "width": 3,
+            "height": 6
           }
         }
-      },
-      "position" : {
-        "x" : 0,
-        "y" : 4,
-        "width" : 3,
-        "height" : 6
-      }
-    } ],
-    "pageType" : "PAGE_TYPE_CANVAS"
-  } ],
-  "uiSettings" : {
-    "theme" : { }
+      ],
+      "pageType": "PAGE_TYPE_CANVAS"
+    }
+  ],
+  "uiSettings": {
+    "theme": {}
   }
 }

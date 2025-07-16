@@ -66,10 +66,6 @@ reset_all_data = dbutils.widgets.get('reset_all_data') == 'true'
 
 # COMMAND ----------
 
-#%run ./_resources/00-setup $reset_all_data=$reset_all_data
-
-# COMMAND ----------
-
 # MAGIC %md
 # MAGIC # Understanding the data
 
@@ -80,7 +76,3 @@ demand_df = spark.read.table(f"{catalogName}.{dbName}.part_level_demand")
 # COMMAND ----------
 
 display(demand_df.select("Product").dropDuplicates())
-
-# COMMAND ----------
-
-
