@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC This notebook should run on an DBR 17.0 cluster without ML
+# MAGIC This notebook should run on a serverless DBSQL cluster. Create the widgets first on an interactive cluster and then switch to a serverless DBSQL cluster.
 
 # COMMAND ----------
 
@@ -73,9 +73,19 @@
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE WIDGET DROPDOWN reset_all_data DEFAULT 'FALSE' CHOICES (VALUES ('TRUE'), ('FALSE'));
-# MAGIC CREATE WIDGET TEXT catalogName DEFAULT 'maxkoehler_demos';
-# MAGIC CREATE WIDGET TEXT dbName DEFAULT 'demand_db';
+# MAGIC -- Create the widgets first on an interactive cluster and then switch to a DBSQL cluster
+# MAGIC --CREATE WIDGET TEXT catalogName DEFAULT 'maxkoehler_demos';
+# MAGIC --CREATE WIDGET TEXT dbName DEFAULT 'demand_db';
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC DROP TABLE IF EXISTS intermediate_bom_traversal;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC DROP TABLE IF EXISTS intermediate_bom_traversal_2;
 
 # COMMAND ----------
 
@@ -87,10 +97,6 @@
 
 # MAGIC %sql
 # MAGIC SELECT * FROM bom
-
-# COMMAND ----------
-
-# MAGIC %run ./_resources/00-setup $reset_all_data=false $catalogName=$catalogName $dbName=$dbName 
 
 # COMMAND ----------
 
@@ -210,6 +216,9 @@
 # COMMAND ----------
 
 # MAGIC %sql
+# MAGIC CREATE OR REPLACE TABLE intermediate_bom_traversal
+# MAGIC USING DELTA
+# MAGIC AS
 # MAGIC WITH RECURSIVE bom_traversal AS (
 # MAGIC     SELECT DISTINCT dst as component, qty as total_qty, dst as sku 
 # MAGIC     FROM edges e 
@@ -229,13 +238,12 @@
 # MAGIC     LEFT ANTI JOIN (SELECT DISTINCT dst FROM edges) AS e2 
 # MAGIC     ON e.src = e2.dst
 # MAGIC );
-# MAGIC
 
 # COMMAND ----------
 
 # MAGIC %sql
-# MAGIC CREATE OR REPLACE TEMP VIEW result AS
-# MAGIC SELECT sku as SKU, component as RAW, total_qty as QTY_RAW FROM _sqldf
+# MAGIC CREATE OR REPLACE TABLE intermediate_bom_traversal_2
+# MAGIC SELECT sku as SKU, component as RAW, total_qty as QTY_RAW FROM intermediate_bom_traversal;
 
 # COMMAND ----------
 
@@ -257,7 +265,7 @@
 # MAGIC FROM 
 # MAGIC     part_level_demand_with_forecasts d
 # MAGIC INNER JOIN 
-# MAGIC     result r 
+# MAGIC     intermediate_bom_traversal_2 r 
 # MAGIC ON 
 # MAGIC     d.SKU = r.SKU
 # MAGIC ORDER BY 
@@ -267,3 +275,13 @@
 
 # MAGIC %sql
 # MAGIC SELECT * FROM forecast_raw
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC DROP TABLE IF EXISTS intermediate_bom_traversal;
+
+# COMMAND ----------
+
+# MAGIC %sql
+# MAGIC DROP TABLE IF EXISTS intermediate_bom_traversal_2;
