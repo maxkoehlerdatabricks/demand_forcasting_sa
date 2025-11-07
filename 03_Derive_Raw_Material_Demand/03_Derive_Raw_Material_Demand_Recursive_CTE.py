@@ -91,7 +91,15 @@
 
 # MAGIC %sql
 # MAGIC USE CATALOG IDENTIFIER(:catalogName);
-# MAGIC USE SCHEMA IDENTIFIER(:dbName);
+# MAGIC
+# MAGIC DECLARE OR REPLACE VARIABLE dbname_individual STRING;
+# MAGIC
+# MAGIC SET VAR (dbname_individual) = (
+# MAGIC   SELECT 
+# MAGIC   concat(:dbName, "_", replace(split_part(current_user(), '@', 1), '.', '')) AS dbname_individual
+# MAGIC );
+# MAGIC
+# MAGIC USE SCHEMA IDENTIFIER(dbname_individual);
 
 # COMMAND ----------
 

@@ -1,24 +1,29 @@
 # Databricks notebook source
-#%pip install databricks-sdk --upgrade
-#dbutils.library.restartPython()
-
-# COMMAND ----------
-
 #dbutils.widgets.dropdown('reset_all_data', 'false', ['true', 'false'], 'Reset all data')
 #dbutils.widgets.text('catalogName',  'maxkoehler_demos' , 'Catalog Name')
 #dbutils.widgets.text('dbName',  'demand_db' , 'Database Name')
 
 # COMMAND ----------
 
+import os
+import re 
+
+# COMMAND ----------
+
 catalogName = dbutils.widgets.get('catalogName')
-dbName = dbutils.widgets.get('dbName')
+dbName_prefix = dbutils.widgets.get('dbName')
 reset_all_data = dbutils.widgets.get('reset_all_data') == 'true'
 
 # COMMAND ----------
 
-import os
-import re 
-#import mlflow
+# Append user to dbName
+from pyspark.sql.functions import regexp_extract
+df = spark.sql("SELECT session_user() as user_name")
+df = df.withColumn("name_before_at", regexp_extract("user_name", r"([^@]+)", 1))
+user_name = df.select("name_before_at").first()["name_before_at"]
+user_name = user_name.replace('.', '')
+dbName = dbName_prefix + "_" + user_name
+print(dbName)
 
 # COMMAND ----------
 
@@ -26,15 +31,19 @@ print("Starting ./_resources/00-setup")
 
 # COMMAND ----------
 
+
+spark.sql(f"""create catalog if not exists {catalogName}""")
+spark.sql(f"""USE CATALOG {catalogName}""")
+
+# COMMAND ----------
+
 if reset_all_data:
-  spark.sql(f"DROP CATALOG IF EXISTS {catalogName} CASCADE")
+  spark.sql(f"DROP SCHEMA IF EXISTS {dbName} CASCADE")
 
 # COMMAND ----------
 
 
 
-spark.sql(f"""create catalog if not exists {catalogName}""")
-spark.sql(f"""USE CATALOG {catalogName}""")
 spark.sql(f"""create database if not exists {dbName}""")
 spark.sql(f"""USE {dbName}""")
 

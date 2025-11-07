@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC This notebook is tested on a an ML enabled cluster, DBR 17.0
+# MAGIC This notebook is tested on a an ML enabled cluster, DBR 17.2
 
 # COMMAND ----------
 
