@@ -147,6 +147,11 @@
 # COMMAND ----------
 
 # MAGIC %sql
+# MAGIC select * from edges;
+
+# COMMAND ----------
+
+# MAGIC %sql
 # MAGIC WITH RECURSIVE bom_traversal AS (
 # MAGIC     SELECT DISTINCT dst as component, qty as total_qty, dst as sku 
 # MAGIC     FROM edges e 
