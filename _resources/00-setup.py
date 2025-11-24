@@ -31,8 +31,6 @@ print("Starting ./_resources/00-setup")
 
 # COMMAND ----------
 
-
-spark.sql(f"""create catalog if not exists {catalogName}""")
 spark.sql(f"""USE CATALOG {catalogName}""")
 
 # COMMAND ----------
