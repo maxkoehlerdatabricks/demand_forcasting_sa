@@ -90,4 +90,31 @@ if reset_all_data:
 
 # COMMAND ----------
 
+print("Write config file..")
+
+# COMMAND ----------
+
+if os.path.exists("config.py"):
+    os.remove("config.py")
+
+# COMMAND ----------
+
+config = f"""# Databricks notebook source
+# MAGIC %md
+# MAGIC ### Set-up notebook config
+# COMMAND ----------
+%sql
+USE CATALOG {catalogName};
+USE SCHEMA {dbName};
+"""
+
+with open("config.py", "w") as f:
+    f.write(config)
+
+# COMMAND ----------
+
+print("Config file written.")
+
+# COMMAND ----------
+
 print("Ending ./_resources/00-setup")

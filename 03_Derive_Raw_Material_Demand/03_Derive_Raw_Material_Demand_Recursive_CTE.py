@@ -1,6 +1,6 @@
 # Databricks notebook source
 # MAGIC %md
-# MAGIC This notebook should run on a serverless DBSQL cluster. Create the widgets first on an interactive cluster and then switch to a serverless DBSQL cluster.
+# MAGIC This notebook should run on a serverless DBSQL cluster.
 
 # COMMAND ----------
 
@@ -72,10 +72,7 @@
 
 # COMMAND ----------
 
-# MAGIC %sql
-# MAGIC -- Create the widgets first on an interactive cluster and then switch to a DBSQL cluster
-# MAGIC --CREATE WIDGET TEXT catalogName DEFAULT 'maxkoehler_demos';
-# MAGIC --CREATE WIDGET TEXT dbName DEFAULT 'demand_db';
+# MAGIC %run ../config
 
 # COMMAND ----------
 
@@ -86,20 +83,6 @@
 
 # MAGIC %sql
 # MAGIC DROP TABLE IF EXISTS intermediate_bom_traversal_2;
-
-# COMMAND ----------
-
-# MAGIC %sql
-# MAGIC USE CATALOG IDENTIFIER(:catalogName);
-# MAGIC
-# MAGIC DECLARE OR REPLACE VARIABLE dbname_individual STRING;
-# MAGIC
-# MAGIC SET VAR (dbname_individual) = (
-# MAGIC   SELECT 
-# MAGIC   concat(:dbName, "_", replace(split_part(current_user(), '@', 1), '.', '')) AS dbname_individual
-# MAGIC );
-# MAGIC
-# MAGIC USE SCHEMA IDENTIFIER(dbname_individual);
 
 # COMMAND ----------
 

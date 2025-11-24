@@ -46,7 +46,7 @@
 # COMMAND ----------
 
 dbutils.widgets.dropdown('reset_all_data', 'false', ['true', 'false'], 'Reset all data')
-dbutils.widgets.text('catalogName',  'maxkoehler_demos' , 'Catalog Name')
+dbutils.widgets.text('catalogName',  'insert_your_catalog_name' , 'Catalog Name')
 dbutils.widgets.text('dbName',  'demand_db' , 'Database Name')
 
 # COMMAND ----------
