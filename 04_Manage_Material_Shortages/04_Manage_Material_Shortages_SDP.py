@@ -66,9 +66,9 @@ from pyspark.sql.types import FloatType
 # COMMAND ----------
 
 # MAGIC %md
-# MAGIC ### Building a Lakeflow Declarative Pipeline to analyze and manage raw material shortages
+# MAGIC ### Building a Spark Declarative Pipeline to analyze and manage raw material shortages
 # MAGIC
-# MAGIC In this example we'll implement an end-2-end lakeflow declarative pipeline consuming our forecasted raw parts demand. 
+# MAGIC In this example we'll implement an end-2-end spark declarative pipeline consuming our forecasted raw parts demand. 
 # MAGIC
 # MAGIC We'll incrementally load new data and simulate raw material shortages, which we'll then use to find affected skus and adjust our production quantities according to what can be shipped to our customers. 
 # MAGIC
